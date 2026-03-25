@@ -1,9 +1,11 @@
 ---
-title: Dash App Template
+title: My First Dash App
 emoji: 📊
 sdk: docker
 app_file: app.py
 pinned: true
+license: mit
+short_description: first dash app for deploy
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
