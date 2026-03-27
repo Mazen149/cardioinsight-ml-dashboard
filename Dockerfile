@@ -1,16 +1,26 @@
-FROM python:3.12
-COPY --from=ghcr.io/astral-sh/uv:0.4.20 /uv /bin/uv
+FROM python:3.11-slim
 
-RUN useradd -m -u 1000 user
-ENV PATH="/home/user/.local/bin:$PATH"
-ENV UV_SYSTEM_PYTHON=1
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --chown=user ./requirements.txt requirements.txt
-RUN uv pip install -r requirements.txt
+# Install Python deps
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=user . /app
-USER user
+# Copy source
+COPY . .
 
-CMD ["gunicorn", "app:server", "--workers", "4", "--bind", "0.0.0.0:7860"]
+# HuggingFace Spaces uses port 7860
+EXPOSE 7860
+
+# Gunicorn — production WSGI server
+CMD ["gunicorn", \
+     "--bind", "0.0.0.0:7860", \
+     "--workers", "1", \
+     "--timeout", "120", \
+     "--preload", \
+     "app:server"]
