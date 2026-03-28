@@ -11,17 +11,257 @@ short_description: Interactive Heart Disease Analytics — UCI Cleveland Dataset
 
 # ❤️ CardioInsight — Heart Disease Analytics Dashboard
 
-An interactive clinical analytics dashboard built with **Dash + Plotly** using the **real UCI Cleveland Heart Disease dataset**.
+CardioInsight is an interactive healthcare analytics app built with Dash + Plotly for exploring, modeling, and simulating heart disease risk using the UCI Cleveland dataset.
 
-## Features
+Live Space:
+https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
 
-| Tab | What it does |
-|-----|-------------|
-| 📊 Exploration | Histogram / Box / Violin per feature, correlation chart, scatter, data table |
-| 🔍 Feature Importance | RF / GBM / LR importances, correlation heatmap, parallel coordinates |
-| 🤖 Model Performance | Compare 4 models — ROC curves, confusion matrix, cross-validation |
-| 🩺 Predict Patient | Adjust 13 clinical sliders → live risk gauge + feature contribution chart |
+## Quick Start (2 Minutes)
 
-## Dataset
-UCI Heart Disease (Cleveland) — 303 patients, 13 clinical features, binary target (disease / no disease).  
-Auto-fetched from the UCI ML Repository on startup.
+### Local Run
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+```
+
+Linux/macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Open:
+http://127.0.0.1:7860
+
+### Docker Run
+
+```bash
+docker build -t cardioinsight .
+docker run --rm -p 7860:7860 cardioinsight
+```
+
+Open:
+http://127.0.0.1:7860
+
+## What This Project Includes
+
+- Interactive exploratory analysis with multiple chart modes
+- Feature importance analysis across multiple ML algorithms
+- Model comparison with ROC, confusion matrix, and cross-validation
+- Patient-level risk prediction with an interactive clinical profile
+- Docker-ready deployment for Hugging Face Spaces
+- GitHub Actions workflow to sync repo updates to Hugging Face
+
+## Full Feature Breakdown
+
+### 1. Exploration Tab
+
+- Feature selector for all clinical variables
+- Chart mode switcher:
+	- Histogram
+	- Box plot
+	- Violin plot
+- Palette/theme switcher
+- Correlation-with-target bar chart
+- Age vs max heart rate scatter plot (bubble size by cholesterol)
+- Diagnosis split donut chart
+- Age distribution by sex chart
+- Interactive data table (first 20 rows)
+
+### 2. Feature Importance Tab
+
+- Algorithm selector:
+	- Random Forest
+	- Gradient Boosting
+	- Logistic Regression
+- Top-N feature slider
+- Importance ranking bar chart
+- Correlation heatmap for selected top features
+- Parallel coordinates plot for top 5 features
+
+### 3. Model Performance Tab
+
+- Multi-model comparison checklist:
+	- Random Forest
+	- Gradient Boosting
+	- Logistic Regression
+	- SVM
+- Adjustable train/test split (10% to 40% test)
+- KPI cards per selected model:
+	- Accuracy
+	- AUC
+	- Weighted F1 score
+- ROC curve comparison
+- Confusion matrix (first selected model)
+- 5-fold cross-validation accuracy box plots
+
+### 4. Predict Patient Tab
+
+- 13 interactive patient input sliders (all core clinical features)
+- Live display for each slider value
+- Prediction model selector:
+	- Random Forest
+	- Gradient Boosting
+	- Logistic Regression
+- Real-time risk probability prediction
+- Risk status banner:
+	- Low risk
+	- High risk
+- Risk gauge chart
+- Feature contribution chart using perturbation-based sensitivity
+
+## Dataset and Preprocessing
+
+Primary source:
+- UCI Cleveland heart disease data:
+	https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data
+
+Fallback source:
+- Local bundled file: data/Heart_disease.csv
+
+Preprocessing pipeline:
+- Parse missing values represented by `?`
+- Drop rows with missing values
+- Cast all columns to numeric float
+- Binarize target:
+	- `0` -> no disease
+	- `1..4` -> disease (mapped to `1`)
+
+Current dataset summary after cleaning:
+- Raw rows: 303
+- Clean rows: 297
+- Disease: 137
+- Healthy: 160
+- Clinical input features: 13
+
+## Tech Stack
+
+- Python 3.11
+- Dash 2.17.1
+- Plotly 5.22.0
+- pandas 2.2.2
+- numpy 1.26.4
+- scikit-learn 1.5.0
+- gunicorn 22.0.0
+
+## Project Structure
+
+```text
+my-first-dash-app/
+├── app.py
+├── requirements.txt
+├── Dockerfile
+├── DEPLOY.md
+├── README.md
+├── .github/
+│   └── workflows/
+│       └── spaces_publish.yml
+└── data/
+		└── Heart_disease.csv
+```
+
+## Run Locally
+
+### 1. Create and activate a virtual environment
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Linux/macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Start the app
+
+```bash
+python app.py
+```
+
+Open:
+http://127.0.0.1:7860
+
+## Run with Docker
+
+Build:
+
+```bash
+docker build -t cardioinsight .
+```
+
+Run:
+
+```bash
+docker run --rm -p 7860:7860 cardioinsight
+```
+
+Open:
+http://127.0.0.1:7860
+
+## Deploy to Hugging Face Spaces
+
+This repo is configured for a Docker-based Hugging Face Space.
+
+Target Space:
+https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
+
+Quick Git workflow:
+
+```bash
+git clone https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
+cd cardioinsight-ml-dashboard
+# copy project files into this repo
+git add .
+git commit -m "Update CardioInsight"
+git push
+```
+
+Detailed deployment steps are available in DEPLOY.md.
+
+## CI/CD Sync Workflow
+
+GitHub Actions workflow file:
+- .github/workflows/spaces_publish.yml
+
+What it does:
+- On push to `main`, pushes code to the Hugging Face Space repo.
+
+Required secret:
+- `HF_TOKEN` with write permission to the target Space.
+
+## Troubleshooting
+
+- `You are not authorized to push to this repo`
+	- Ensure the Hugging Face token has write access.
+	- Ensure your account has write permission on `Dash-healthcare/cardioinsight-ml-dashboard`.
+- App fails at startup on Space
+	- Check Space logs for dependency or import errors.
+- Dataset fetch fails from UCI
+	- App automatically falls back to `data/Heart_disease.csv`.
+- Local package mismatch errors
+	- Use a clean virtual environment and reinstall from `requirements.txt`.
+
+## Notes
+
+- The dashboard retrains models in callbacks to keep behavior fully interactive.
+- The app is tuned for explainability and educational analytics, not as a medical diagnosis system.
