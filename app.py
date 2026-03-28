@@ -53,7 +53,7 @@ def load_dataset() -> pd.DataFrame:
         print("✅  Loaded dataset from UCI repository.")
     except Exception as e:
         print(f"⚠️  Remote fetch failed ({e}). Using bundled copy.")
-        local = os.path.join(os.path.dirname(__file__), "data", "heart.csv")
+        local = os.path.join(os.path.dirname(__file__), "data", "Heart_disease.csv")
         df = pd.read_csv(local)
         # Normalise columns if bundled file has headers
         if "target" not in df.columns:
