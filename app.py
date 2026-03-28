@@ -89,6 +89,7 @@ FEATURE_LABELS = {
 # 2.  DESIGN TOKENS
 # ──────────────────────────────────────────────────────────────
 BG, CARD, BORDER = "#0D1117", "#161B22", "#30363D"
+GRAPH_BG = "#11161F"  # modern black graph panel
 C1  = "#58A6FF"   # blue   – primary
 C2  = "#3FB950"   # green  – healthy
 C3  = "#F85149"   # red    – disease
@@ -97,12 +98,12 @@ C5  = "#FFA657"   # orange
 TEXT, SUB = "#E6EDF3", "#8B949E"
 
 PLOT = dict(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor ="rgba(0,0,0,0)",
+    paper_bgcolor=GRAPH_BG,
+    plot_bgcolor =GRAPH_BG,
     font=dict(family="JetBrains Mono, monospace", color=TEXT, size=11),
     margin=dict(l=48, r=28, t=48, b=40),
-    xaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER),
-    yaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER),
+    xaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER, linecolor=BORDER),
+    yaxis=dict(gridcolor=BORDER, zerolinecolor=BORDER, linecolor=BORDER),
 )
 
 ALGO_NAMES  = {"rf": "Random Forest", "gb": "Gradient Boosting",
@@ -116,14 +117,20 @@ def label_s(): return {
     "color": SUB, "fontSize": "10px", "letterSpacing": "1.2px",
     "textTransform": "uppercase", "marginBottom": "6px", "display": "block",
 }
-def dd_s(): return {
-    "backgroundColor": CARD, "color": TEXT,
-    "border": f"1px solid {BORDER}", "borderRadius": "6px",
-}
 def card_s(**kw): return {
     "background": CARD, "border": f"1px solid {BORDER}",
     "borderRadius": "8px", "padding": "22px", **kw,
 }
+
+def blank_fig(height=None):
+    """Dark placeholder figure to avoid white flash before callbacks update charts."""
+    fig = go.Figure()
+    fig.update_layout(**PLOT, showlegend=False)
+    fig.update_xaxes(visible=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(visible=False, showgrid=False, zeroline=False)
+    if height is not None:
+        fig.update_layout(height=height)
+    return fig
 
 def kpi_card(title, value, sub, color):
     return html.Div([
@@ -145,6 +152,7 @@ server = app.server          # ← required by HF Spaces / gunicorn
 app.title = "CardioInsight · UCI Heart Disease"
 
 app.layout = html.Div([
+
     # Google Font
     html.Link(rel="preconnect", href="https://fonts.googleapis.com"),
     html.Link(rel="stylesheet",
@@ -178,17 +186,22 @@ app.layout = html.Div([
     ], style={"display": "flex", "gap": "14px", "padding": "18px 32px", "flexWrap": "wrap"}),
 
     # ── Tabs ────────────────────────────────────────────────
-    dcc.Tabs(id="tabs", value="eda", children=[
-        dcc.Tab(label="📊  Exploration",         value="eda"),
-        dcc.Tab(label="🔍  Feature Importance",  value="feat"),
-        dcc.Tab(label="🤖  Model Performance",   value="model"),
-        dcc.Tab(label="🩺  Predict Patient",     value="pred"),
-    ], style={"padding": "0 32px"},
-       colors={"border": BORDER, "primary": C1, "background": BG}),
+    dcc.Tabs(
+        id="tabs",
+        value="eda",
+        parent_className="ci-tabs-parent",
+        className="ci-tabs",
+        children=[
+            dcc.Tab(label="📊  Exploration", value="eda", className="ci-tab", selected_className="ci-tab-selected"),
+            dcc.Tab(label="🔍  Feature Importance", value="feat", className="ci-tab", selected_className="ci-tab-selected"),
+            dcc.Tab(label="🤖  Model Performance", value="model", className="ci-tab", selected_className="ci-tab-selected"),
+            dcc.Tab(label="🩺  Predict Patient", value="pred", className="ci-tab", selected_className="ci-tab-selected"),
+        ],
+    ),
 
     html.Div(id="content", style={"padding": "22px 32px"}),
 
-], style={"background": BG, "minHeight": "100vh",
+], className="app-root", style={"background": BG, "minHeight": "100vh",
           "fontFamily": "JetBrains Mono, monospace", "color": TEXT})
 
 
@@ -213,17 +226,16 @@ def eda_layout():
                 html.Label("Feature", style=label_s()),
                 dcc.Dropdown(id="eda-feat",
                     options=[{"label": v, "value": k} for k, v in FEATURE_LABELS.items()],
-                    value="age", clearable=False, style=dd_s()),
+                    value="age", clearable=False, className="ci-dropdown"),
             ], style={"flex": "2"}),
+            
             html.Div([
                 html.Label("Chart Type", style=label_s()),
                 dcc.RadioItems(id="eda-type",
                     options=[{"label": " Histogram", "value": "hist"},
                              {"label": " Box Plot",  "value": "box"},
                              {"label": " Violin",    "value": "violin"}],
-                    value="hist", inline=True,
-                    style={"color": TEXT, "display": "flex", "gap": "18px",
-                           "alignItems": "center", "height": "38px"}),
+                    value="hist", inline=True, className="ci-radio"),
             ], style={"flex": "2"}),
             html.Div([
                 html.Label("Palette", style=label_s()),
@@ -231,20 +243,20 @@ def eda_layout():
                     options=[{"label": "Blue / Red",     "value": "br"},
                              {"label": "Teal / Orange",  "value": "to"},
                              {"label": "Purple / Green", "value": "pg"}],
-                    value="br", clearable=False, style=dd_s()),
+                    value="br", clearable=False, className="ci-dropdown"),
             ], style={"flex": "1"}),
         ], style={"display": "flex", "gap": "20px", "alignItems": "flex-end",
                   "marginBottom": "18px"}),
 
         html.Div([
-            dcc.Graph(id="eda-main",    style={"flex": "1.6"}),
-            dcc.Graph(id="eda-corr",    style={"flex": "1"}),
+            dcc.Graph(id="eda-main", figure=blank_fig(), style={"flex": "1.6"}),
+            dcc.Graph(id="eda-corr", figure=blank_fig(), style={"flex": "1"}),
         ], style={"display": "flex", "gap": "14px"}),
 
         html.Div([
-            dcc.Graph(id="eda-scatter", style={"flex": "1"}),
-            dcc.Graph(id="eda-pie",     style={"flex": "1"}),
-            dcc.Graph(id="eda-sexage",  style={"flex": "1"}),
+            dcc.Graph(id="eda-scatter", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="eda-pie", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="eda-sexage", figure=blank_fig(), style={"flex": "1"}),
         ], style={"display": "flex", "gap": "14px", "marginTop": "14px"}),
 
         # Data table
@@ -350,23 +362,24 @@ def feat_layout():
                     options=[{"label": "Random Forest",      "value": "rf"},
                              {"label": "Gradient Boosting",  "value": "gb"},
                              {"label": "Logistic Regression","value": "lr"}],
-                    value="rf", clearable=False, style=dd_s()),
+                    value="rf", clearable=False, className="ci-dropdown"),
             ], style={"flex": "1"}),
             html.Div([
-                html.Label(f"Top N Features  (3 – {len(FEATURES)})", style=label_s()),
+                html.Label(f"Top N Features  (3 - {len(FEATURES)})", style=label_s()),
                 dcc.Slider(id="fi-n", min=3, max=len(FEATURES), step=1, value=8,
                            marks={i: str(i) for i in range(3, len(FEATURES)+1)},
-                           tooltip={"placement": "bottom"}),
+                           tooltip={"placement": "bottom"}, className="ci-slider"),
             ], style={"flex": "2.5"}),
+            
         ], style={"display": "flex", "gap": "24px", "alignItems": "flex-end",
                   "marginBottom": "18px"}),
 
         html.Div([
-            dcc.Graph(id="fi-bar",     style={"flex": "1"}),
-            dcc.Graph(id="fi-heatmap", style={"flex": "1.3"}),
+            dcc.Graph(id="fi-bar", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="fi-heatmap", figure=blank_fig(), style={"flex": "1.3"}),
         ], style={"display": "flex", "gap": "14px"}),
 
-        dcc.Graph(id="fi-parallel", style={"marginTop": "14px"}),
+        dcc.Graph(id="fi-parallel", figure=blank_fig(), style={"marginTop": "14px"}),
     ])
 
 
@@ -448,15 +461,14 @@ def model_layout():
                     options=[{"label": f"  {v}", "value": k}
                              for k, v in ALGO_NAMES.items()],
                     value=["rf", "gb"],
-                    style={"color": TEXT, "display": "flex", "gap": "20px",
-                           "flexWrap": "wrap", "alignItems": "center",
-                           "height": "38px"}),
+                    inline=True,
+                    className="ci-checklist"),
             ], style={"flex": "2"}),
             html.Div([
                 html.Label("Test Split %", style=label_s()),
                 dcc.Slider(id="ml-split", min=10, max=40, step=5, value=20,
                            marks={i: f"{i}%" for i in range(10, 45, 5)},
-                           tooltip={"placement": "bottom"}),
+                           tooltip={"placement": "bottom"}, className="ci-slider"),
             ], style={"flex": "1.5"}),
         ], style={"display": "flex", "gap": "24px", "alignItems": "flex-end",
                   "marginBottom": "18px"}),
@@ -466,9 +478,9 @@ def model_layout():
                         "flexWrap": "wrap", "marginBottom": "18px"}),
 
         html.Div([
-            dcc.Graph(id="ml-roc", style={"flex": "1"}),
-            dcc.Graph(id="ml-cm",  style={"flex": "1"}),
-            dcc.Graph(id="ml-cv",  style={"flex": "1"}),
+            dcc.Graph(id="ml-roc", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="ml-cm", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="ml-cv", figure=blank_fig(), style={"flex": "1"}),
         ], style={"display": "flex", "gap": "14px"}),
     ])
 
@@ -593,7 +605,7 @@ def pred_layout():
                                    "width": "210px", "flexShrink": "0"}),
             dcc.Slider(id=f"p-{fid}", min=mn, max=mx, step=step, value=val,
                        marks=m, tooltip={"placement":"top","always_visible":False},
-                       style={"flex": "1"}),
+                      className="ci-slider ci-slider-flex"),
             html.Span(id=f"p-{fid}-v", children=str(val),
                       style={"color": C1, "fontSize": "12px", "fontWeight": "700",
                              "width": "48px", "textAlign": "right", "flexShrink": "0"}),
@@ -615,7 +627,7 @@ def pred_layout():
                         options=[{"label":"Random Forest",     "value":"rf"},
                                  {"label":"Gradient Boosting", "value":"gb"},
                                  {"label":"Logistic Regression","value":"lr"}],
-                        value="rf", clearable=False, style=dd_s()),
+                        value="rf", clearable=False, className="ci-dropdown"),
                 ], style={"marginTop": "18px"}),
             ], style={**card_s(flex="1")}),
 
@@ -627,8 +639,8 @@ def pred_layout():
                                "borderBottom": f"1px solid {BORDER}",
                                "paddingBottom": "10px"}),
                 html.Div(id="p-banner"),
-                dcc.Graph(id="p-gauge",   style={"height": "280px"}),
-                dcc.Graph(id="p-contrib", style={"height": "380px"}),
+                dcc.Graph(id="p-gauge", figure=blank_fig(280), style={"height": "280px"}),
+                dcc.Graph(id="p-contrib", figure=blank_fig(380), style={"height": "380px"}),
             ], style={**card_s(flex="1")}),
         ], style={"display": "flex", "gap": "20px"}),
     ])

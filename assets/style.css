@@ -1,0 +1,303 @@
+html,
+body,
+#react-entry-point {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.app-root {
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* Tabs */
+
+.ci-tabs-parent {
+    padding: 0 32px;
+}
+
+.ci-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid #30363D;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #151B24 0%, #10161F 100%);
+    box-shadow: inset 0 1px 0 rgba(230, 237, 243, 0.04), 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.ci-tab {
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 11px 16px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    color: #8B949E !important;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ci-tab:hover {
+    background: rgba(88, 166, 255, 0.14) !important;
+    color: #E6EDF3 !important;
+}
+
+.ci-tab-selected {
+    border: none !important;
+    border-radius: 10px !important;
+    background: linear-gradient(180deg, #1F2A39 0%, #182232 100%) !important;
+    color: #E6EDF3 !important;
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.42), 0 4px 12px rgba(88, 166, 255, 0.2);
+}
+
+@media (max-width: 900px) {
+    .ci-tab,
+    .ci-tab-selected {
+        font-size: 11px;
+        padding: 9px 12px !important;
+    }
+}
+
+
+/* Dash Dropdown (dash-core-components 4.x / Radix-based) */
+
+.dash-dropdown.ci-dropdown {
+    background: #161B22 !important;
+    border: 1px solid #30363D !important;
+    color: #E6EDF3 !important;
+}
+
+.dash-dropdown.ci-dropdown:focus {
+    border-color: #58A6FF !important;
+    outline: 1px solid #58A6FF !important;
+}
+
+.dash-dropdown.ci-dropdown .dash-dropdown-placeholder {
+    color: #8B949E;
+}
+
+.app-root .dash-dropdown-content {
+    background: #161B22 !important;
+    border: 1px solid #30363D !important;
+    color: #E6EDF3 !important;
+}
+
+.app-root .dash-dropdown-search-container {
+    background: #161B22 !important;
+    border-color: #30363D !important;
+}
+
+.app-root .dash-dropdown-search {
+    color: #E6EDF3 !important;
+}
+
+.app-root .dash-dropdown-option {
+    color: #E6EDF3 !important;
+}
+
+.app-root .dash-dropdown-option:hover {
+    background-color: #21262D !important;
+}
+
+.app-root .dash-dropdown-option:has(input:checked) {
+    background-color: rgba(88, 166, 255, 0.18) !important;
+}
+
+.app-root .dash-dropdown-value-count {
+    background: #21262D;
+    color: #8B949E;
+}
+
+.app-root .dash-dropdown-trigger-icon,
+.app-root .dash-dropdown-clear {
+    color: #8B949E;
+    fill: #8B949E;
+}
+
+.app-root .dash-dropdown-clear:hover {
+    color: #58A6FF;
+    fill: #58A6FF;
+}
+
+
+/* Legacy Dash Dropdown fallback (react-select v1) */
+
+.ci-dropdown .Select-control {
+    background-color: #161B22;
+    border: 1px solid #30363D;
+    border-radius: 6px;
+}
+
+.ci-dropdown .Select-placeholder {
+    color: #8B949E;
+}
+
+.ci-dropdown .Select-value-label,
+.ci-dropdown .Select--single>.Select-control .Select-value {
+    color: #E6EDF3;
+}
+
+.ci-dropdown .Select-input>input {
+    color: #E6EDF3;
+}
+
+.ci-dropdown .Select-menu-outer {
+    background-color: #161B22;
+    border: 1px solid #30363D;
+}
+
+.ci-dropdown .Select-option {
+    background-color: #161B22;
+    color: #E6EDF3;
+}
+
+.ci-dropdown .Select-option.is-focused {
+    background-color: #21262D;
+    color: #E6EDF3;
+}
+
+.ci-dropdown .Select-option.is-selected {
+    background-color: #58A6FF;
+    color: #0D1117;
+}
+
+
+/* RadioItems */
+
+.ci-radio {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    min-height: 38px;
+    color: #E6EDF3;
+}
+
+.ci-radio .dash-options-list-option {
+    padding: 0;
+    background: transparent;
+    color: #E6EDF3;
+}
+
+.ci-radio .dash-options-list-option.dash-radioitems-inline {
+    margin-right: 0;
+}
+
+.ci-radio .dash-options-list-option-wrapper {
+    gap: 6px;
+}
+
+.ci-radio .dash-options-list-option-checkbox,
+.ci-radio input[type="radio"] {
+    accent-color: #58A6FF;
+    outline-color: #58A6FF;
+}
+
+.ci-radio .dash-options-list-option:not(:has(input[disabled])):hover,
+.ci-radio .dash-options-list-option:not(:has(input[disabled])):focus-within {
+    color: #58A6FF;
+}
+
+
+/* Checklist */
+
+.ci-checklist {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    min-height: 38px;
+    color: #E6EDF3;
+}
+
+.ci-checklist .dash-options-list-option {
+    padding: 0;
+    background: transparent;
+    color: #E6EDF3;
+}
+
+.ci-checklist .dash-options-list-option.dash-checklist-inline {
+    margin-right: 0;
+}
+
+.ci-checklist .dash-options-list-option-wrapper {
+    gap: 6px;
+}
+
+.ci-checklist .dash-options-list-option-checkbox,
+.ci-checklist input[type="checkbox"] {
+    accent-color: #58A6FF;
+    outline-color: #58A6FF;
+}
+
+.ci-checklist .dash-options-list-option:not(:has(input[disabled])):hover,
+.ci-checklist .dash-options-list-option:not(:has(input[disabled])):focus-within {
+    color: #58A6FF;
+}
+
+
+/* Slider */
+
+.ci-slider {
+    color: #E6EDF3;
+}
+
+.ci-slider-flex {
+    flex: 1;
+}
+
+.ci-slider .dash-slider-track {
+    background-color: #30363D;
+}
+
+.ci-slider .dash-slider-range {
+    background-color: #58A6FF;
+}
+
+.ci-slider .dash-slider-thumb {
+    background-color: #58A6FF;
+    border-color: #0D1117;
+}
+
+.ci-slider .dash-slider-thumb:focus,
+.ci-slider .dash-slider-thumb:hover {
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.25);
+}
+
+.ci-slider .dash-slider-mark {
+    color: #8B949E;
+}
+
+.ci-slider .dash-slider-mark-outside-selection {
+    color: #6E7681;
+}
+
+.ci-slider .dash-slider-dot {
+    background-color: #30363D;
+}
+
+.ci-slider .dash-slider-tooltip {
+    background-color: #161B22;
+    color: #E6EDF3;
+    border: 1px solid #30363D;
+    fill: #161B22;
+}
+
+.ci-slider .dash-range-slider-input {
+    background-color: #161B22;
+    border: 1px solid #30363D;
+    border-radius: 6px;
+    color: #E6EDF3;
+}
+
+.ci-slider .dash-range-slider-input:focus {
+    border-color: #58A6FF;
+    outline: 1px solid #58A6FF;
+}
