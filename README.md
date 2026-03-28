@@ -164,9 +164,23 @@ my-first-dash-app/
 ├── .github/
 │   └── workflows/
 │       └── spaces_publish.yml
-└── data/
-		└── Heart_disease.csv
+├── data/
+│   └── Heart_disease.csv
+└── notebooks/
+	└── heart_disease_eda.ipynb
 ```
+
+## Exploratory Data Analysis Notebook
+
+The **`notebooks/heart_disease_eda.ipynb`** Jupyter notebook contains comprehensive exploratory analysis including:
+- Data quality assessment and preprocessing
+- Distribution analysis of clinical features
+- Correlation analysis with target variable
+- Statistical summaries and outlier detection
+- Feature engineering insights
+- Preliminary model evaluation
+
+This notebook informs the design and feature selection in the interactive dashboard.
 
 ## Run Locally
 
