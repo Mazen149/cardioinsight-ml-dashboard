@@ -31,8 +31,7 @@ from sklearn.metrics import (
 
 # ──────────────────────────────────────────────────────────────
 # 1.  LOAD REAL UCI HEART DISEASE DATASET
-#     Primary  : fetch from UCI ML Repository (CSV mirror)
-#     Fallback : bundled copy in data/heart.csv
+#     Source : bundled copy in data/Heart_disease.csv
 # ──────────────────────────────────────────────────────────────
 COLUMN_NAMES = [
     "age", "sex", "cp", "trestbps", "chol",
@@ -40,24 +39,20 @@ COLUMN_NAMES = [
     "oldpeak", "slope", "ca", "thal", "target",
 ]
 
-UCI_URL = (
-    "https://archive.ics.uci.edu/ml/machine-learning-databases/"
-    "heart-disease/processed.cleveland.data"
-)
-
 def load_dataset() -> pd.DataFrame:
-    """Load UCI Cleveland Heart Disease dataset, clean & return."""
-    # Try remote first
-    try:
-        df = pd.read_csv(UCI_URL, header=None, names=COLUMN_NAMES, na_values="?")
-        print("✅  Loaded dataset from UCI repository.")
-    except Exception as e:
-        print(f"⚠️  Remote fetch failed ({e}). Using bundled copy.")
-        local = os.path.join(os.path.dirname(__file__), "data", "Heart_disease.csv")
-        df = pd.read_csv(local)
-        # Normalise columns if bundled file has headers
-        if "target" not in df.columns:
-            df.columns = COLUMN_NAMES
+    """Load bundled heart disease dataset from the local data folder."""
+    local = os.path.join(os.path.dirname(__file__), "data", "Heart_disease.csv")
+    if not os.path.exists(local):
+        raise FileNotFoundError(
+            f"Dataset not found at '{local}'. Expected data/Heart_disease.csv"
+        )
+
+    df = pd.read_csv(local)
+    print(f"✅  Loaded dataset from local file: {local}")
+
+    # Normalise columns if the local file does not include target header.
+    if "target" not in df.columns:
+        df.columns = COLUMN_NAMES
 
     # Clean
     df.dropna(inplace=True)
