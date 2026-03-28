@@ -1,14 +1,3 @@
----
-title: CardioInsight Heart Disease Dashboard
-emoji: ❤️
-colorFrom: red
-colorTo: blue
-sdk: docker
-pinned: false
-license: mit
-short_description: Interactive Heart Disease Analytics — UCI Cleveland Dataset
----
-
 # ❤️ CardioInsight — Heart Disease Analytics Dashboard
 
 CardioInsight is an interactive healthcare analytics app built with Dash + Plotly for exploring, modeling, and simulating heart disease risk using the UCI Cleveland dataset.
