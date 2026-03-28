@@ -51,8 +51,8 @@ Go to https://huggingface.co and sign up (free).
 git lfs install
 
 # Clone your new Space
-git clone https://huggingface.co/spaces/YOUR_USERNAME/cardioinsight
-cd cardioinsight
+git clone https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
+cd cardioinsight-ml-dashboard
 
 # Copy all project files here
 cp /path/to/hf_space/* .
@@ -78,7 +78,7 @@ git push
 
 Your dashboard will be at:
 ```
-https://huggingface.co/spaces/YOUR_USERNAME/cardioinsight
+https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
 ```
 
 ---
