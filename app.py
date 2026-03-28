@@ -595,7 +595,12 @@ PRED_SLIDERS = [
     ("thal",     "Thalassemia",                    0,  3,   1,     2, {0:"Normal", 1:"Fixed defect", 2:"Reversible", 3:"Other"}),
 ]
 PRED_IDS = [r[0] for r in PRED_SLIDERS]
-
+_PRED_SCALER = StandardScaler().fit(X)
+_PRED_MODELS = {
+    "rf": RandomForestClassifier(n_estimators=200, random_state=42).fit(X, y),
+    "gb": GradientBoostingClassifier(n_estimators=200, random_state=42).fit(X, y),
+    "lr": LogisticRegression(max_iter=1000, random_state=42).fit(_PRED_SCALER.transform(X), y),
+}
 
 def pred_layout():
     def row(fid, lbl, mn, mx, step, val, marks):
@@ -649,7 +654,7 @@ def pred_layout():
 # Live slider display
 for _fid, *_ in PRED_SLIDERS:
     @app.callback(Output(f"p-{_fid}-v", "children"), Input(f"p-{_fid}", "value"))
-    def _disp(v): return str(v)
+    def _disp(v, fid=_fid): return str(v)
 
 
 @app.callback(
@@ -662,20 +667,13 @@ for _fid, *_ in PRED_SLIDERS:
 def upd_pred(*args):
     vals = {fid: float(v) for fid, v in zip(PRED_IDS, args[:len(PRED_IDS)])}
     algo = args[-1]
-
     pv    = np.array([[vals[f] for f in FEATURES]])
-    sc    = StandardScaler().fit(X)
+    sc    = _PRED_SCALER
     pv_sc = sc.transform(pv)
 
-    def build(k):
-        return {"rf":  RandomForestClassifier(n_estimators=200, random_state=42),
-                "gb":  GradientBoostingClassifier(n_estimators=200, random_state=42),
-                "lr":  LogisticRegression(max_iter=1000, random_state=42)}[k]
-
     scaled = algo == "lr"
-    mdl = build(algo)
-    mdl.fit(sc.transform(X) if scaled else X, y)
-    prob = mdl.predict_proba(pv_sc if scaled else pv)[0][1]
+    mdl    = _PRED_MODELS[algo]
+    prob   = mdl.predict_proba(pv_sc if scaled else pv)[0][1]
     pred = int(prob >= 0.5)
 
     color = C3 if pred else C2
@@ -704,9 +702,9 @@ def upd_pred(*args):
             "bar": {"color": color, "thickness": 0.25},
             "bgcolor": CARD, "bordercolor": BORDER,
             "steps": [
-                {"range": [0,  35], "color": f"{C2}22"},
-                {"range": [35, 65], "color": f"{C5}22"},
-                {"range": [65, 100],"color": f"{C3}22"},
+                {"range": [0,  35], "color": "rgba(63, 185, 80, 0.13)"},
+                {"range": [35, 65], "color": "rgba(255, 166, 87, 0.13)"},
+                {"range": [65, 100],"color": "rgba(248, 81, 73, 0.13)"},
             ],
             "threshold": {"line": {"color": TEXT, "width": 3},
                           "thickness": 0.85, "value": 50},
