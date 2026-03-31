@@ -94,6 +94,12 @@ http://127.0.0.1:7860
 	- Gradient Boosting
 	- Logistic Regression
 	- SVM
+- **Hyperparameter Tuning** (optimized for immediate feedback):
+	- Random Forest: n_estimators, max_depth, min_samples_split
+	- Gradient Boosting: n_estimators, learning_rate, max_depth
+	- Logistic Regression: C (regularization), penalty type, max_iter
+	- SVM: C, kernel type (RBF/Linear/Poly), gamma
+	- Dynamic UI visibility (controls shown only when model selected)
 - Adjustable train/test split (10% to 40% test)
 - KPI cards per selected model:
 	- Accuracy
@@ -101,7 +107,7 @@ http://127.0.0.1:7860
 	- Weighted F1 score
 - ROC curve comparison
 - Confusion matrix (first selected model)
-- 5-fold cross-validation accuracy box plots
+- 3-fold stratified cross-validation accuracy box plots (optimized for speed)
 
 ### 4. Predict Patient Tab
 
@@ -116,7 +122,10 @@ http://127.0.0.1:7860
 	- Low risk
 	- High risk
 - Risk gauge chart
-- Feature contribution chart using perturbation-based sensitivity
+- **Clinical Summary Analysis**:
+	- Patient description: Demographics, key symptoms, identified risk factors (hypertension, high cholesterol, exercise-induced angina)
+	- Personalized advice: Algorithm-specific and age-adjusted recommendations based on risk level
+- Feature contribution chart using perturbation-based sensitivity analysis
 
 ## Dataset and Preprocessing
 
@@ -134,13 +143,23 @@ Preprocessing pipeline:
 - Binarize target:
 	- `0` -> no disease
 	- `1..4` -> disease (mapped to `1`)
+- **Automatic Feature Engineering**:
+	- Hypertension flag: Binary indicator (BP ≥ 140 mmHg)
+	- High Cholesterol flag: Binary indicator (Cholesterol ≥ 240 mg/dL)
+	- HR Reserve %: Normalized heart rate capacity (max_heart_rate / (220 - age))
+
+Preprocessing strategy by feature type:
+- **StandardScaler**: Age, max heart rate, HR reserve % (normally distributed)
+- **RobustScaler**: Blood pressure, cholesterol, ST depression (outlier-prone)
+- **OrdinalEncoder**: Chest pain, ECG status, ST slope, vessels, thalassemia (categorical)
+- **SimpleImputer**: Handles missing values per feature type (median for numeric, most frequent for categorical)
 
 Current dataset summary after cleaning:
 - Raw rows: 303
 - Clean rows: 297
 - Disease: 137
 - Healthy: 160
-- Clinical input features: 13
+- Input features: 13 base + 3 engineered = 16 total
 
 ## Tech Stack
 
@@ -277,5 +296,10 @@ Required secret:
 
 ## Notes
 
-- The dashboard retrains models in callbacks to keep behavior fully interactive.
-- The app is tuned for explainability and educational analytics, not as a medical diagnosis system.
+- The dashboard retrains models and evaluates interactively in real-time, enabling instant feedback on hyperparameter adjustments
+- The app is tuned for **explainability and responsiveness**: 
+	- 3-fold stratified cross-validation for faster model evaluation
+	- Weighted F1 score for faster metric computation
+	- SVM decision function optimization to avoid probability calibration overhead
+- The app is intended for educational analytics and model exploration, not as a medical diagnosis system
+- All data preprocessing and feature engineering happens automatically; raw predictions are explained through clinical narrative and feature contribution analysis
