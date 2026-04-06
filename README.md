@@ -54,6 +54,7 @@ http://127.0.0.1:7860
 ## What This Project Includes
 
 - Interactive exploratory analysis with multiple chart modes
+- Global palette theming for consistent visuals across all tabs
 - Feature importance analysis across multiple ML algorithms
 - Model comparison with ROC, confusion matrix, and cross-validation
 - Patient-level risk prediction with an interactive clinical profile
@@ -65,16 +66,15 @@ http://127.0.0.1:7860
 ### 1. Exploration Tab
 
 - Feature selector for all clinical variables
-- Chart mode switcher:
-	- Histogram
-	- Box plot
-	- Violin plot
-- Palette/theme switcher
+- Chart mode switcher adapts by feature type:
+	- Numerical: Histogram, Box Plot, KDE
+	- Categorical: Bar Chart, Stacked Bar, Heatmap, Pie
+- Global palette selector (in header) applies across all tabs and all Exploration visuals
 - Correlation-with-target bar chart
-- Age vs max heart rate scatter plot (bubble size by cholesterol)
-- Diagnosis split donut chart
-- Age distribution by sex chart
-- Interactive data table (first 20 rows)
+- Static comparison row with 3 charts:
+	- Age vs Max Heart Rate bubble scatter (bubble size = cholesterol)
+	- Diagnosis split donut chart
+	- Age distribution by sex chart
 
 ### 2. Feature Importance Tab
 
@@ -137,8 +137,8 @@ Fallback source:
 - Local bundled file: data/Heart_disease.csv
 
 Preprocessing pipeline:
-- Parse missing values represented by `?`
-- Drop rows with missing values
+- Load bundled CSV from `data/Heart_disease.csv`
+- Drop rows with missing values (none in the bundled dataset)
 - Cast all columns to numeric float
 - Binarize target:
 	- `0` -> no disease
@@ -154,11 +154,9 @@ Preprocessing strategy by feature type:
 - **OrdinalEncoder**: Chest pain, ECG status, ST slope, vessels, thalassemia (categorical)
 - **SimpleImputer**: Handles missing values per feature type (median for numeric, most frequent for categorical)
 
-Current dataset summary after cleaning:
+Current dataset summary after loading:
 - Raw rows: 303
-- Clean rows: 297
-- Disease: 137
-- Healthy: 160
+- Missing rows removed: none in bundled file
 - Input features: 13 base + 3 engineered = 16 total
 
 ## Tech Stack

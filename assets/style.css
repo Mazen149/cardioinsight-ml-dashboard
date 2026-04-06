@@ -23,7 +23,7 @@ body,
 
 .ci-tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
     padding: 6px;
     border: 1px solid #30363D;
@@ -58,6 +58,7 @@ body,
 }
 
 @media (max-width: 900px) {
+
     .ci-tab,
     .ci-tab-selected {
         font-size: 11px;

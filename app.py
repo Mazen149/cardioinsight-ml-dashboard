@@ -7,7 +7,6 @@
 """
 
 import os
-import io
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -15,7 +14,7 @@ import pandas as pd
 import numpy as np
 
 import dash
-from dash import dcc, html, Input, Output, dash_table
+from dash import dcc, html, Input, Output
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -51,7 +50,7 @@ def load_dataset() -> pd.DataFrame:
         )
 
     df = pd.read_csv(local)
-    print(f"✅  Loaded dataset from local file: {local}")
+    print(f"[OK] Loaded dataset from local file: {local}")
 
     # Normalise columns if the local file does not include target header.
     if "target" not in df.columns:
@@ -76,7 +75,7 @@ def load_dataset() -> pd.DataFrame:
     # Heart rate reserve proxy: thalach normalized to age-predicted max (220 - age)
     df['hr_reserve_pct'] = df['thalach'] / (220 - df['age'])
 
-    print("✅  Feature engineering applied: hypertension, high_chol, hr_reserve_pct")
+    print("[OK] Feature engineering applied: hypertension, high_chol, hr_reserve_pct")
     
     return df.reset_index(drop=True)
 
@@ -132,9 +131,17 @@ y = df["target"]
 # Fit the preprocessor on the full dataset once (for static app)
 X_preprocessed = preprocessor.fit_transform(X)
 
-print(f"✅  Preprocessing pipeline built and fitted. Feature matrix shape: {X_preprocessed.shape}")
+print(f"[OK] Preprocessing pipeline built and fitted. Feature matrix shape: {X_preprocessed.shape}")
 
 FEATURES = feature_cols  # Updated to include engineered features
+
+# Feature type categorization for different chart modes
+NUMERICAL_FEATURES = num_standard + num_robust
+CATEGORICAL_FEATURES = binary_cols + ordinal_cols
+
+# Map each feature to its type
+FEATURE_TYPES = {f: "numerical" for f in NUMERICAL_FEATURES}
+FEATURE_TYPES.update({f: "categorical" for f in CATEGORICAL_FEATURES})
 
 FEATURE_LABELS = {
     "age":          "Age (years)",
@@ -153,6 +160,21 @@ FEATURE_LABELS = {
     "hypertension": "Hypertension (BP ≥ 140)",
     "high_chol":    "High Cholesterol (≥ 240)",
     "hr_reserve_pct": "HR Reserve %",
+}
+
+# Category labels for categorical features (for nice pie chart labels)
+FEATURE_CATEGORY_LABELS = {
+    "sex": {0: "Female", 1: "Male"},
+    "cp": {0: "Typical Angina", 1: "Atypical Angina", 2: "Non-anginal Pain", 3: "Asymptomatic"},
+    "fbs": {0: "Normal (<= 120)", 1: "Elevated (> 120)"},
+    "restecg": {0: "Normal", 1: "ST-T Abnormality", 2: "LV Hypertrophy"},
+    "exang": {0: "No", 1: "Yes"},
+    "slope": {0: "Downsloping", 1: "Flat", 2: "Upsloping"},
+    "ca": {0: "0 vessels", 1: "1 vessel", 2: "2 vessels", 3: "3 vessels"},
+    "thal": {0: "Normal", 1: "Fixed Defect", 2: "Reversible Defect", 3: "Other"},
+    "hypertension": {0: "Normal (< 140)", 1: "High (>= 140)"},
+    "high_chol": {0: "Normal (< 240)", 1: "High (>= 240)"},
+    "target": {0: "Healthy", 1: "Disease"},
 }
 
 # Feature definitions for the Exploration tab
@@ -198,7 +220,18 @@ PLOT = dict(
 
 ALGO_NAMES  = {"rf": "Random Forest", "gb": "Gradient Boosting",
                "lr": "Logistic Reg.",  "svm": "SVM"}
-ALGO_COLORS = {"rf": C1, "gb": C4, "lr": C2, "svm": C5}
+
+THEME_MAP = {
+    "br": ("#58A6FF", "#F85149"),  # Blue / Red
+    "to": ("#14B8A6", "#F59E0B"),  # Teal / Orange
+    "pg": ("#A78BFA", "#22C55E"),  # Purple / Green
+}
+
+THEME_MODEL_COLORS = {
+    "br": {"rf": "#58A6FF", "gb": "#F85149", "lr": "#3FB950", "svm": "#FFA657"},
+    "to": {"rf": "#14B8A6", "gb": "#F59E0B", "lr": "#38BDF8", "svm": "#F97316"},
+    "pg": {"rf": "#A78BFA", "gb": "#22C55E", "lr": "#C084FC", "svm": "#16A34A"},
+}
 
 # ──────────────────────────────────────────────────────────────
 # 3.  HELPERS
@@ -211,6 +244,12 @@ def card_s(**kw): return {
     "background": CARD, "border": f"1px solid {BORDER}",
     "borderRadius": "8px", "padding": "22px", **kw,
 }
+
+def hex_to_rgba(hex_color, alpha):
+    """Convert a hex color to rgba(r,g,b,a) string for translucent Plotly fills."""
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
 def blank_fig(height=None):
     """Dark placeholder figure to avoid white flash before callbacks update charts."""
@@ -258,10 +297,25 @@ app.layout = html.Div([
             html.Span(" Analytics Dashboard",
                       style={"fontSize": "15px", "color": SUB, "marginLeft": "10px"}),
         ], style={"display": "flex", "alignItems": "center"}),
-        html.Div(
-            f"UCI Heart Disease · Cleveland · {len(df)} patients · {len(FEATURES)} features",
-            style={"color": SUB, "fontSize": "13px"},
-        ),
+        html.Div([
+            html.Div(
+                f"UCI Heart Disease · Cleveland · {len(df)} patients · {len(FEATURES)} features",
+                style={"color": SUB, "fontSize": "13px", "marginBottom": "8px"},
+            ),
+            html.Div([
+                html.Span("Palette", style={"color": SUB, "fontSize": "12px", "marginRight": "8px"}),
+                dcc.Dropdown(
+                    id="global-theme",
+                    options=[
+                        {"label": "Blue / Red", "value": "br"},
+                        {"label": "Teal / Orange", "value": "to"},
+                        {"label": "Purple / Green", "value": "pg"},
+                    ],
+                    value="br", clearable=False, className="ci-dropdown",
+                    style={"width": "210px"},
+                ),
+            ], style={"display": "flex", "alignItems": "center", "justifyContent": "flex-end"}),
+        ], style={"display": "flex", "flexDirection": "column", "alignItems": "flex-end"}),
     ], style={"display": "flex", "justifyContent": "space-between", "alignItems": "center",
               "padding": "18px 32px", "borderBottom": f"1px solid {BORDER}",
               "background": CARD}),
@@ -322,19 +376,9 @@ def eda_layout():
             html.Div([
                 html.Label("Chart Type", style=label_s()),
                 dcc.RadioItems(id="eda-type",
-                    options=[{"label": " Histogram", "value": "hist"},
-                             {"label": " Box Plot",  "value": "box"},
-                             {"label": " Violin",    "value": "violin"}],
+                    options=[],  # Will be populated by callback
                     value="hist", inline=True, className="ci-radio"),
-            ], style={"flex": "2"}),
-            html.Div([
-                html.Label("Palette", style=label_s()),
-                dcc.Dropdown(id="eda-theme",
-                    options=[{"label": "Blue / Red",     "value": "br"},
-                             {"label": "Teal / Orange",  "value": "to"},
-                             {"label": "Purple / Green", "value": "pg"}],
-                    value="br", clearable=False, className="ci-dropdown"),
-            ], style={"flex": "1"}),
+            ], style={"flex": "3"}),
         ], style={"display": "flex", "gap": "20px", "alignItems": "flex-end",
                   "marginBottom": "18px"}),
 
@@ -342,13 +386,13 @@ def eda_layout():
         html.Div([
             html.Div([
                 html.H4(id="eda-def-title", 
-                        style={"color": C1, "margin": "0 0 14px", "fontSize": "16px",
-                               "fontWeight": "700", "letterSpacing": "0.5px"}),
+                   style={"color": C1, "margin": "0 0 16px", "fontSize": "20px",
+                       "fontWeight": "800", "letterSpacing": "0.4px"}),
                 html.P(id="eda-def-text",
-                       style={"color": TEXT, "margin": "0", "fontSize": "13px",
-                              "lineHeight": "1.7", "opacity": "0.95"}),
+                  style={"color": TEXT, "margin": "0", "fontSize": "16px",
+                      "lineHeight": "1.95", "opacity": "1", "fontWeight": "500"}),
             ], style=card_s()),
-        ], style={"marginBottom": "20px", "paddingLeft": "2px", "borderLeft": f"3px solid {C1}"}),
+         ], style={"marginBottom": "20px", "paddingLeft": "6px", "borderLeft": f"4px solid {C1}"}),
 
         html.Div([
             dcc.Graph(id="eda-main", figure=blank_fig(), style={"flex": "1.6"}),
@@ -356,14 +400,11 @@ def eda_layout():
         ], style={"display": "flex", "gap": "14px"}),
 
         html.Div([
-            dcc.Graph(id="eda-scatter", figure=blank_fig(), style={"flex": "1"}),
-            dcc.Graph(id="eda-pie", figure=blank_fig(), style={"flex": "1"}),
             dcc.Graph(id="eda-sexage", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="eda-pie", figure=blank_fig(), style={"flex": "1"}),
+            dcc.Graph(id="eda-age-sex", figure=blank_fig(), style={"flex": "1"}),
         ], style={"display": "flex", "gap": "14px", "marginTop": "14px"}),
     ])
-
-
-THEME_MAP = {"br": (C2, C3), "to": ("#00B4D8", "#FF6B35"), "pg": ("#B5179E", "#4CC9F0")}
 
 @app.callback(
     Output("eda-def-title", "children"),
@@ -378,14 +419,44 @@ def upd_eda_def(feature):
 
 
 @app.callback(
+    Output("eda-type", "options"),
+    Output("eda-type", "value"),
+    Input("eda-feat", "value"),
+)
+def upd_chart_options(feature):
+    """Update chart type options based on feature type (numerical vs categorical)."""
+    feat_type = FEATURE_TYPES.get(feature, "numerical")
+    
+    if feat_type == "numerical":
+        # Numerical features: Histogram, Box Plot, KDE
+        options = [
+            {"label": " Histogram", "value": "hist"},
+            {"label": " Box Plot",  "value": "box"},
+            {"label": " KDE",       "value": "kde"}
+        ]
+        default = "hist"
+    else:
+        # Categorical features: Bar Chart, Stacked, Heatmap, Pie
+        options = [
+            {"label": " Bar Chart",  "value": "bar"},
+            {"label": " Stacked",    "value": "stacked"},
+            {"label": " Heatmap",    "value": "heatmap"},
+            {"label": " Pie",        "value": "pie"}
+        ]
+        default = "bar"
+    
+    return options, default
+
+
+@app.callback(
     Output("eda-main",    "figure"),
     Output("eda-corr",    "figure"),
-    Output("eda-scatter", "figure"),
     Output("eda-pie",     "figure"),
     Output("eda-sexage",  "figure"),
+    Output("eda-age-sex", "figure"),
     Input("eda-feat",  "value"),
     Input("eda-type",  "value"),
-    Input("eda-theme", "value"),
+    Input("global-theme", "value"),
 )
 def upd_eda(feature, ctype, theme):
     c0, c1 = THEME_MAP.get(theme, THEME_MAP["br"])
@@ -393,19 +464,111 @@ def upd_eda(feature, ctype, theme):
     dff = df.copy()
     dff["Diagnosis"] = dff["target"].map({0: "Healthy", 1: "Disease"})
     cmap = {"Healthy": c0, "Disease": c1}
+    
+    feat_type = FEATURE_TYPES.get(feature, "numerical")
 
-    if ctype == "hist":
-        fig1 = px.histogram(dff, x=feature, color="Diagnosis",
-                            color_discrete_map=cmap, barmode="overlay",
-                            nbins=25, opacity=0.78, title=f"Distribution — {lab}")
-    elif ctype == "box":
-        fig1 = px.box(dff, x="Diagnosis", y=feature, color="Diagnosis",
-                      color_discrete_map=cmap, points="all",
-                      title=f"{lab} by Diagnosis")
+    # Chart generation based on feature type
+    if feat_type == "numerical":
+        # Numerical features: Histogram, Box Plot, KDE
+        if ctype == "hist":
+            fig1 = px.histogram(dff, x=feature, color="Diagnosis",
+                                color_discrete_map=cmap, barmode="overlay",
+                                nbins=25, opacity=0.78, title=f"Distribution — {lab}")
+        elif ctype == "box":
+            fig1 = px.box(dff, x="Diagnosis", y=feature, color="Diagnosis",
+                          color_discrete_map=cmap, points="all",
+                          title=f"{lab} by Diagnosis")
+        else:  # kde
+            # KDE plot using plotly
+            import scipy.stats as stats
+            x_range = np.linspace(dff[feature].min(), dff[feature].max(), 200)
+            fig1 = go.Figure()
+            for diag, color in cmap.items():
+                data = dff[dff["Diagnosis"] == diag][feature]
+                if len(data) > 1:
+                    kde = stats.gaussian_kde(data)
+                    fig1.add_trace(go.Scatter(
+                        x=x_range, y=kde(x_range),
+                        mode='lines', name=diag, line=dict(color=color, width=2.5),
+                        fill='tozeroy', opacity=0.6
+                    ))
+            fig1.update_layout(**PLOT, title=f"{lab} — Kernel Density Estimate",
+                              xaxis_title=lab, yaxis_title="Density")
     else:
-        fig1 = px.violin(dff, x="Diagnosis", y=feature, color="Diagnosis",
-                         color_discrete_map=cmap, box=True,
-                         title=f"{lab} — Violin")
+        # Categorical features: Bar Chart, Stacked, Heatmap, Pie
+        if ctype == "bar":
+            # Grouped bar chart with counts and percentages
+            freq_data = dff.groupby([feature, "Diagnosis"]).size().reset_index(name="Count")
+            # Calculate percentages for each feature category
+            freq_data["Total"] = freq_data.groupby(feature)["Count"].transform("sum")
+            freq_data["Pct"] = (freq_data["Count"] / freq_data["Total"] * 100).round(1)
+            fig1 = px.bar(freq_data, x=feature, y="Count", color="Diagnosis",
+                         color_discrete_map=cmap, barmode="group",
+                         title=f"{lab} — Frequency by Diagnosis",
+                         labels={feature: lab},
+                         text="Pct",
+                         custom_data=["Pct", "Count"])
+            fig1.update_traces(texttemplate="%{text:.1f}%", textposition="outside",
+                              hovertemplate="<b>%{x}</b><br>%{fullData.name}<br>Count: %{customdata[1]}<br>Percentage: %{customdata[0]:.1f}%<extra></extra>")
+        elif ctype == "stacked":
+            # Stacked bar chart with percentages visible on bars
+            freq_data = dff.groupby([feature, "Diagnosis"]).size().reset_index(name="Count")
+            freq_data["Total"] = freq_data.groupby(feature)["Count"].transform("sum")
+            freq_data["Pct"] = (freq_data["Count"] / freq_data["Total"] * 100).round(1)
+            fig1 = px.bar(freq_data, x=feature, y="Count", color="Diagnosis",
+                         color_discrete_map=cmap, barmode="stack",
+                         title=f"{lab} — Stacked Distribution",
+                         labels={feature: lab},
+                         text="Pct",
+                         custom_data=["Pct", "Count"])
+            fig1.update_traces(texttemplate="%{text:.1f}%", textposition="inside",
+                              hovertemplate="<b>%{x}</b><br>%{fullData.name}<br>Count: %{customdata[1]}<br>Percentage: %{customdata[0]:.1f}%<extra></extra>")
+        elif ctype == "heatmap":
+            # Contingency table heatmap: categories vs diagnosis
+            contingency = pd.crosstab(dff[feature], dff["Diagnosis"])
+            fig1 = go.Figure(data=go.Heatmap(
+                z=contingency.values,
+                x=contingency.columns,
+                y=contingency.index,
+                colorscale=[[0, c0], [1, c1]],
+                text=contingency.values,
+                texttemplate='%{text}',
+                colorbar=dict(title="Count")
+            ))
+            fig1.update_layout(**PLOT, title=f"{lab} — Distribution Heatmap",
+                              xaxis_title="Diagnosis", yaxis_title=lab)
+        else:  # pie
+            # Pie chart: show distribution of selected feature
+            if feat_type == "numerical":
+                # For numerical features, create bins and show distribution
+                feature_dist = pd.cut(dff[feature], bins=5).value_counts().sort_index()
+                labels = [f"{interval.left:.1f}-{interval.right:.1f}" for interval in feature_dist.index]
+            else:
+                # For categorical features, show direct value counts with meaningful labels
+                feature_dist = dff[feature].value_counts()
+                # Get category labels if they exist, otherwise use raw values
+                if feature in FEATURE_CATEGORY_LABELS:
+                    label_map = FEATURE_CATEGORY_LABELS[feature]
+                    labels = [label_map.get(int(val) if isinstance(val, float) and val.is_integer() else val, str(val)) 
+                             for val in feature_dist.index]
+                else:
+                    labels = [str(int(val)) if isinstance(val, float) and val.is_integer() else str(val) for val in feature_dist.index]
+            
+            n_slices = len(feature_dist)
+            steps = [i / max(1, n_slices - 1) for i in range(n_slices)]
+            pie_colors = px.colors.sample_colorscale([c0, c1], steps)
+
+            fig1 = px.pie(values=feature_dist.values,
+                         names=labels,
+                         hole=0.45,
+                         title=f"{lab} — Distribution")
+            fig1.update_traces(
+                marker=dict(colors=pie_colors),
+                textposition="inside",
+                textinfo="label+percent+value"
+            )
+
+    
     fig1.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
 
     corr = df[FEATURES].corrwith(df["target"]).sort_values()
@@ -418,25 +581,42 @@ def upd_eda(feature, ctype, theme):
     fig2.update_layout(**PLOT, title="Correlation with Target", height=380,
                         xaxis_title="Pearson r")
 
-    fig3 = px.scatter(dff, x="age", y="thalach", color="Diagnosis",
-                      color_discrete_map=cmap, size="chol",
-                      hover_data=["cp", "ca", "oldpeak", "sex"],
-                      title="Age vs Max Heart Rate  (size = Cholesterol)",
-                      labels={"age": "Age (yr)", "thalach": "Max HR (bpm)"})
-    fig3.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
-
     counts = dff["Diagnosis"].value_counts()
-    fig4 = go.Figure(go.Pie(labels=counts.index, values=counts.values,
+    fig3 = go.Figure(go.Pie(labels=counts.index, values=counts.values,
                              marker_colors=[c0, c1], hole=0.56,
-                             textinfo="label+percent", pull=[0.03, 0.03]))
-    fig4.update_layout(**PLOT, title="Diagnosis Split", showlegend=False)
+                             textinfo="label+percent+value", pull=[0.05, 0.05],
+                             textposition="inside"))
+    fig3.update_layout(**PLOT, title="Diagnosis Split", showlegend=False)
+
+    fig4 = px.scatter(
+        dff,
+        x="age",
+        y="thalach",
+        color="Diagnosis",
+        size="chol",
+        color_discrete_map=cmap,
+        opacity=0.75,
+        size_max=22,
+        title="Age vs Max Heart Rate (size = Cholesterol)",
+        labels={"age": "Age (yr)", "thalach": "Max HR (bpm)", "chol": "Cholesterol (mg/dL)"},
+        hover_data={"age": True, "thalach": True, "chol": True, "Diagnosis": True},
+    )
+    fig4.update_traces(marker=dict(line=dict(width=1, color="rgba(230,237,243,0.5)")))
+    fig4.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
 
     dff["Sex"] = dff["sex"].map({0.0: "Female", 1.0: "Male"})
-    fig5 = px.histogram(dff, x="age", color="Sex",
-                         color_discrete_map={"Female": C4, "Male": C5},
-                         barmode="overlay", nbins=20, opacity=0.80,
-                         title="Age Distribution by Sex",
-                         labels={"age": "Age (yr)"})
+    sex_colors = px.colors.sample_colorscale([c0, c1], [0.2, 0.8])
+    fig5 = px.histogram(
+        dff,
+        x="age",
+        color="Sex",
+        color_discrete_map={"Male": sex_colors[0], "Female": sex_colors[1]},
+        barmode="overlay",
+        nbins=20,
+        opacity=0.75,
+        title="Age Distribution by Sex",
+        labels={"age": "Age (yr)"},
+    )
     fig5.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
 
     return fig1, fig2, fig3, fig4, fig5
@@ -481,8 +661,10 @@ def feat_layout():
     Output("fi-parallel", "figure"),
     Input("fi-algo", "value"),
     Input("fi-n",    "value"),
+    Input("global-theme", "value"),
 )
-def upd_feat(algo, n):
+def upd_feat(algo, n, theme):
+    c0, c1 = THEME_MAP.get(theme, THEME_MAP["br"])
     # Use preprocessed data directly
     Xtr_proc, Xte_proc, ytr, yte = train_test_split(
         X_preprocessed, y, test_size=0.2, random_state=42
@@ -512,13 +694,20 @@ def upd_feat(algo, n):
     fig1 = go.Figure(go.Bar(
         x=top.values, y=[str(f) for f in top.index],
         orientation="h",
-        marker=dict(color=top.values, colorscale="Blues", showscale=True,
+        marker=dict(color=top.values, colorscale=[[0, "#CBD5E1"], [1, c0]], showscale=True,
                     colorbar=dict(thickness=10, tickfont=dict(color=TEXT))),
-        text=[f"{v:.3f}" for v in top.values], textposition="outside",
+        text=[f"{v:.3f}" for v in top.values],
+        textposition="outside",
+        textfont=dict(color=TEXT, size=14, family="JetBrains Mono, monospace"),
+        cliponaxis=False,
     ))
-    fig1.update_layout(**PLOT,
-        title=f"Top {n} Features — {ALGO_NAMES[algo]}",
-        xaxis_title="Importance Score", height=380)
+    # Reserve right-side headroom so outside labels remain fully visible.
+    xmax = float(top.max())
+    xpad = max(0.01, xmax * 0.18)
+    fig1.update_layout(**PLOT, title=f"Top {n} Features — {ALGO_NAMES[algo]}",
+        xaxis_title="Importance Score", height=max(300, 200 + n * 15))
+    fig1.update_layout(margin=dict(l=150, r=90, t=48, b=40))
+    fig1.update_xaxes(range=[0, xmax + xpad])
 
     # For correlation, use subset of original features for interpretability
     top_cols = [col for col in FEATURES if any(col in str(f) for f in top.index)] + ["target"]
@@ -530,7 +719,7 @@ def upd_feat(algo, n):
     labs = [FEATURE_LABELS.get(c, c) for c in cm.columns]
     fig2 = go.Figure(go.Heatmap(
         z=cm.values, x=labs, y=labs,
-        colorscale="RdBu_r", zmid=0,
+        colorscale=[[0, c0], [0.5, "#1F2937"], [1, c1]], zmid=0,
         text=np.round(cm.values, 2), texttemplate="%{text}",
         colorbar=dict(thickness=10, tickfont=dict(color=TEXT)),
     ))
@@ -551,15 +740,17 @@ def upd_feat(algo, n):
     for c in t5_originals:
         mn, mx = dff[c].min(), dff[c].max()
         norm[c] = (dff[c] - mn) / (mx - mn + 1e-9)
-    dims = [dict(label=FEATURE_LABELS.get(f, f), values=norm[f]) for f in t5_originals]
+    dims = [dict(label=FEATURE_LABELS.get(f, f).replace(" ", "<br>"), values=norm[f]) for f in t5_originals]
     dims.append(dict(label="Diagnosis", values=dff["target"],
                      tickvals=[0,1], ticktext=["Healthy","Disease"]))
     fig3 = go.Figure(go.Parcoords(
         line=dict(color=dff["target"],
-                  colorscale=[[0, C2], [1, C3]], cmin=0, cmax=1),
+                  colorscale=[[0, c0], [1, c1]], cmin=0, cmax=1),
         dimensions=dims,
+        domain=dict(x=[0, 1], y=[0, 0.88]),
     ))
-    fig3.update_layout(**PLOT, title="Parallel Coordinates — Top 5 Features", height=300)
+    fig3.update_layout(**PLOT, title="Parallel Coordinates — Top 5 Features", height=420)
+    fig3.update_layout(margin=dict(l=80, r=40, t=90, b=60))
 
     return fig1, fig2, fig3
 
@@ -773,12 +964,15 @@ def toggle_ml_hyperparams(selected):
     Input("ml-svm-c", "value"),
     Input("ml-svm-kernel", "value"),
     Input("ml-svm-gamma", "value"),
+    Input("global-theme", "value"),
 )
 def upd_model(selected, split_pct,
               rf_est, rf_depth, rf_min_split,
               gb_est, gb_lr, gb_depth,
               lr_c, lr_penalty, lr_iter,
-              svm_c, svm_kernel, svm_gamma):
+              svm_c, svm_kernel, svm_gamma,
+              theme):
+    model_colors = THEME_MODEL_COLORS.get(theme, THEME_MODEL_COLORS["br"])
     empty = go.Figure(); empty.update_layout(**PLOT)
     if not selected:
         return [], empty, empty, empty
@@ -847,11 +1041,11 @@ def upd_model(selected, split_pct,
         fig_roc.add_trace(go.Scatter(
             x=fpr, y=tpr, mode="lines",
             name=f"{ALGO_NAMES[k]} (AUC={ra:.2f})",
-            line=dict(color=ALGO_COLORS[k], width=2.5)))
+            line=dict(color=model_colors[k], width=2.5)))
 
         kpis.append(html.Div([
             html.P(ALGO_NAMES[k],
-                   style={"color": ALGO_COLORS[k], "margin": "0 0 6px",
+                 style={"color": model_colors[k], "margin": "0 0 6px",
                           "fontSize": "12px", "letterSpacing": "1px",
                           "textTransform": "uppercase"}),
             html.H3(f"{acc:.1%}",
@@ -859,7 +1053,7 @@ def upd_model(selected, split_pct,
                            "color": TEXT, "fontWeight": "700"}),
                  html.P(f"AUC {ra:.3f}  ·  F1 {f1w:.3f}",
                    style={"margin": "6px 0 0", "fontSize": "12px", "color": SUB}),
-        ], style={**card_s(), "borderTop": f"3px solid {ALGO_COLORS[k]}",
+         ], style={**card_s(), "borderTop": f"3px solid {model_colors[k]}",
                   "minWidth": "155px"}))
 
         if primary_cm is None:
@@ -875,7 +1069,7 @@ def upd_model(selected, split_pct,
     fig_cm = go.Figure(go.Heatmap(
         z=cm, x=["Pred Healthy", "Pred Disease"],
         y=["Actual Healthy", "Actual Disease"],
-        colorscale=[[0, BG], [1, ALGO_COLORS[cm_k]]],
+        colorscale=[[0, BG], [1, model_colors[cm_k]]],
         text=cm, texttemplate="<b>%{text}</b>",
         textfont=dict(size=22), showscale=False,
     ))
@@ -885,7 +1079,7 @@ def upd_model(selected, split_pct,
     fig_cv = go.Figure()
     for k, cvs in cv_traces:
         fig_cv.add_trace(go.Box(y=cvs, name=ALGO_NAMES[k],
-                                 marker_color=ALGO_COLORS[k], boxmean=True))
+                                 marker_color=model_colors[k], boxmean=True))
     fig_cv.update_layout(**PLOT, title="3-Fold CV Accuracy (Fast)",
                           yaxis_title="Accuracy", showlegend=False)
 
@@ -970,7 +1164,7 @@ def pred_layout():
         # Clinical Details Section (below all other content)
         html.Div([
             html.H3("📋 Clinical Analysis",
-                    style={"color": C1, "margin": "0 0 18px", "fontSize": "16px",
+                    style={"color": C1, "margin": "0 0 20px", "fontSize": "20px",
                            "letterSpacing": "1px", "textTransform": "uppercase",
                            "borderBottom": f"1px solid {BORDER}",
                            "paddingBottom": "12px"}),
@@ -978,26 +1172,26 @@ def pred_layout():
             # Clinical Profile Card
             html.Div([
                 html.H4("📋 Clinical Profile", style={
-                    "color": C1, "fontSize": "13px", "margin": "0 0 10px",
+                    "color": C1, "fontSize": "18px", "margin": "0 0 12px",
                     "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
                 }),
                 html.P(id="p-description", style={
-                    "color": TEXT, "fontSize": "12px", "lineHeight": "1.8",
-                    "margin": "0", "padding": "12px 14px", "background": f"{C1}08",
-                    "borderRadius": "6px", "borderLeft": f"3px solid {C1}",
+                    "color": TEXT, "fontSize": "16px", "lineHeight": "1.95",
+                    "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
+                    "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
                 }),
             ], style={"marginBottom": "14px"}),
             
             # Advice Card
             html.Div([
                 html.H4(id="p-advice-title", style={
-                    "fontSize": "13px", "margin": "0 0 10px",
+                    "fontSize": "18px", "margin": "0 0 12px",
                     "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
                 }),
                 html.P(id="p-advice", style={
-                    "fontSize": "12px", "lineHeight": "1.8", "whiteSpace": "pre-wrap",
-                    "margin": "0", "padding": "12px 14px",
-                    "borderRadius": "6px",
+                    "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
+                    "margin": "0", "padding": "16px 18px",
+                    "borderRadius": "8px",
                     "fontFamily": "JetBrains Mono, monospace"
                 }),
             ]),
@@ -1064,7 +1258,7 @@ def generate_clinical_summary(vals, prob, pred):
         else:
             advice += "• Schedule cardiac evaluation soon\n• Consider stress testing (ECG/imaging)\n• Assess exercise capacity with physician\n• Lifestyle modifications to reduce future risk\n• Follow-up cardiology visit recommended"
     else:
-        advice = "✅ LOW RISK — MAINTAIN HEALTHY HABITS\n\n"
+        advice = "[OK] LOW RISK MAINTAIN HEALTHY HABITS\n\n"
         if age >= 50:
             advice += "• Continue regular health screening (every 2-3 years)\n• Annual cardiovascular checkup recommended\n• Maintain current healthy lifestyle\n• Consider periodic stress testing per physician\n• Monitor vital signs regularly"
         else:
@@ -1084,10 +1278,13 @@ def generate_clinical_summary(vals, prob, pred):
     Output("p-advice",  "style"),
     [Input(f"p-{fid}", "value") for fid in PRED_IDS],
     Input("p-algo", "value"),
+    Input("global-theme", "value"),
 )
 def upd_pred(*args):
     vals = {fid: float(v) for fid, v in zip(PRED_IDS, args[:len(PRED_IDS)])}
-    algo = args[-1]
+    algo = args[-2]
+    theme = args[-1]
+    healthy_color, disease_color = THEME_MAP.get(theme, THEME_MAP["br"])
     
     # Build dataframe with user values and compute engineered features
     patient_data = pd.DataFrame([vals])
@@ -1104,8 +1301,8 @@ def upd_pred(*args):
     prob = mdl.predict_proba(patient_preprocessed)[0][1]
     pred = int(prob >= 0.5)
 
-    color = C3 if pred else C2
-    icon  = "⚠️" if pred else "✅"
+    color = disease_color if pred else healthy_color
+    icon  = "[!]" if pred else "[OK]"
     label = "HIGH RISK — Disease Likely" if pred else "LOW RISK — No Disease Detected"
     
     # Generate clinical summary
@@ -1134,9 +1331,9 @@ def upd_pred(*args):
             "bar": {"color": color, "thickness": 0.25},
             "bgcolor": CARD, "bordercolor": BORDER,
             "steps": [
-                {"range": [0,  35], "color": "rgba(63, 185, 80, 0.13)"},
+                {"range": [0,  35], "color": hex_to_rgba(healthy_color, 0.13)},
                 {"range": [35, 65], "color": "rgba(255, 166, 87, 0.13)"},
-                {"range": [65, 100],"color": "rgba(248, 81, 73, 0.13)"},
+                {"range": [65, 100],"color": hex_to_rgba(disease_color, 0.13)},
             ],
             "threshold": {"line": {"color": TEXT, "width": 3},
                           "thickness": 0.85, "value": 50},
@@ -1165,7 +1362,7 @@ def upd_pred(*args):
         contrib[feat] = prob - alt_prob
 
     cs   = pd.Series(contrib).sort_values()
-    bcol = [C3 if v > 0 else C2 for v in cs.values]
+    bcol = [disease_color if v > 0 else healthy_color for v in cs.values]
     fig_c = go.Figure(go.Bar(
         x=cs.values, y=[FEATURE_LABELS[f] for f in cs.index],
         orientation="h", marker_color=bcol,
@@ -1178,15 +1375,15 @@ def upd_pred(*args):
     # Advice title styling
     advice_title = "💡 Personalized Advice"
     advice_title_style = {
-        "color": color, "fontSize": "13px", "margin": "0 0 10px",
+        "color": color, "fontSize": "18px", "margin": "0 0 12px",
         "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
     }
     
     # Advice styling
     advice_style = {
-        "color": TEXT, "fontSize": "12px", "lineHeight": "1.8", "whiteSpace": "pre-wrap",
-        "margin": "0", "padding": "12px 14px", "background": f"{color}08",
-        "borderRadius": "6px", "borderLeft": f"3px solid {color}",
+        "color": TEXT, "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
+        "margin": "0", "padding": "16px 18px", "background": f"{color}14",
+        "borderRadius": "8px", "borderLeft": f"4px solid {color}",
         "fontFamily": "JetBrains Mono, monospace"
     }
 
