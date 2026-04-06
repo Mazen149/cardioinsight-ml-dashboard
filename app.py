@@ -916,7 +916,6 @@ def model_layout():
 
         html.Div([
             dcc.Graph(id="ml-roc", figure=blank_fig(), style={"flex": "1"}),
-            dcc.Graph(id="ml-cm", figure=blank_fig(), style={"flex": "1"}),
             dcc.Graph(id="ml-cv", figure=blank_fig(), style={"flex": "1"}),
         ], style={"display": "flex", "gap": "14px"}),
     ])
@@ -948,7 +947,6 @@ def toggle_ml_hyperparams(selected):
 @app.callback(
     Output("ml-kpis", "children"),
     Output("ml-roc",  "figure"),
-    Output("ml-cm",   "figure"),
     Output("ml-cv",   "figure"),
     Input("ml-models","value"),
     Input("ml-split", "value"),
@@ -1065,17 +1063,6 @@ def upd_model(selected, split_pct,
                            yaxis_title="True Positive Rate",
                            legend=dict(bgcolor="rgba(0,0,0,0)", x=0.5, y=0.05))
 
-    cm, cm_k = primary_cm
-    fig_cm = go.Figure(go.Heatmap(
-        z=cm, x=["Pred Healthy", "Pred Disease"],
-        y=["Actual Healthy", "Actual Disease"],
-        colorscale=[[0, BG], [1, model_colors[cm_k]]],
-        text=cm, texttemplate="<b>%{text}</b>",
-        textfont=dict(size=22), showscale=False,
-    ))
-    fig_cm.update_layout(**PLOT,
-        title=f"Confusion Matrix — {ALGO_NAMES[cm_k]}")
-
     fig_cv = go.Figure()
     for k, cvs in cv_traces:
         fig_cv.add_trace(go.Box(y=cvs, name=ALGO_NAMES[k],
@@ -1083,7 +1070,7 @@ def upd_model(selected, split_pct,
     fig_cv.update_layout(**PLOT, title="3-Fold CV Accuracy (Fast)",
                           yaxis_title="Accuracy", showlegend=False)
 
-    return kpis, fig_roc, fig_cm, fig_cv
+    return kpis, fig_roc, fig_cv
 
 
 # ══════════════════════════════════════════════════════════════

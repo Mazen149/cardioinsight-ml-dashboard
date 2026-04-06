@@ -108,7 +108,16 @@ body,
 }
 
 .app-root .dash-dropdown-option:has(input:checked) {
-    background-color: rgba(88, 166, 255, 0.18) !important;
+    background-color: rgba(88, 166, 255, 0.35) !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+}
+
+.app-root .dash-dropdown-value,
+.app-root .dash-dropdown-value-text,
+.app-root .dash-dropdown-trigger {
+    color: #FFFFFF !important;
+    font-weight: 700;
 }
 
 .app-root .dash-dropdown-value-count {
@@ -142,7 +151,8 @@ body,
 
 .ci-dropdown .Select-value-label,
 .ci-dropdown .Select--single>.Select-control .Select-value {
-    color: #E6EDF3;
+    color: #FFFFFF;
+    font-weight: 700;
 }
 
 .ci-dropdown .Select-input>input {
@@ -166,7 +176,8 @@ body,
 
 .ci-dropdown .Select-option.is-selected {
     background-color: #58A6FF;
-    color: #0D1117;
+    color: #FFFFFF;
+    font-weight: 700;
 }
 
 
