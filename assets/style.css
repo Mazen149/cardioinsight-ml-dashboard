@@ -107,7 +107,9 @@ body,
     background-color: #21262D !important;
 }
 
-.app-root .dash-dropdown-option:has(input:checked) {
+.app-root .dash-dropdown-option:has(input:checked),
+.app-root .dash-dropdown-option[aria-selected="true"],
+.app-root .dash-dropdown-option[data-selected="true"] {
     background-color: rgba(88, 166, 255, 0.35) !important;
     color: #FFFFFF !important;
     font-weight: 700;
@@ -115,7 +117,9 @@ body,
 
 .app-root .dash-dropdown-value,
 .app-root .dash-dropdown-value-text,
-.app-root .dash-dropdown-trigger {
+.app-root .dash-dropdown-trigger,
+.app-root .dash-dropdown [role="combobox"],
+.app-root .dash-dropdown button {
     color: #FFFFFF !important;
     font-weight: 700;
 }
