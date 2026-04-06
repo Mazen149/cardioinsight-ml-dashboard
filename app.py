@@ -572,14 +572,21 @@ def upd_eda(feature, ctype, theme):
     fig1.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
 
     corr = df[FEATURES].corrwith(df["target"]).sort_values()
+    corr_vals = corr.values.astype(float)
+    corr_pad = max(0.03, (float(corr_vals.max()) - float(corr_vals.min())) * 0.14)
     fig2 = go.Figure(go.Bar(
         x=corr.values, y=[FEATURE_LABELS[f] for f in corr.index],
         orientation="h",
         marker_color=[c1 if v > 0 else c0 for v in corr.values],
-        text=[f"{v:.2f}" for v in corr.values], textposition="outside",
+        text=[f"{v:+.2f}" for v in corr.values],
+        textposition="outside",
+        textfont=dict(color=TEXT, size=16, family="JetBrains Mono, monospace"),
+        cliponaxis=False,
     ))
     fig2.update_layout(**PLOT, title="Correlation with Target", height=380,
                         xaxis_title="Pearson r")
+    fig2.update_layout(margin=dict(l=250, r=80, t=48, b=40))
+    fig2.update_xaxes(range=[float(corr_vals.min()) - corr_pad, float(corr_vals.max()) + corr_pad])
 
     counts = dff["Diagnosis"].value_counts()
     fig3 = go.Figure(go.Pie(labels=counts.index, values=counts.values,
@@ -1349,15 +1356,22 @@ def upd_pred(*args):
         contrib[feat] = prob - alt_prob
 
     cs   = pd.Series(contrib).sort_values()
+    cs_vals = cs.values.astype(float)
+    cs_pad = max(0.01, (float(cs_vals.max()) - float(cs_vals.min())) * 0.20)
     bcol = [disease_color if v > 0 else healthy_color for v in cs.values]
     fig_c = go.Figure(go.Bar(
         x=cs.values, y=[FEATURE_LABELS[f] for f in cs.index],
         orientation="h", marker_color=bcol,
-        text=[f"{v:+.3f}" for v in cs.values], textposition="outside",
+        text=[f"{v:+.3f}" for v in cs.values],
+        textposition="outside",
+        textfont=dict(color=TEXT, size=16, family="JetBrains Mono, monospace"),
+        cliponaxis=False,
     ))
     fig_c.update_layout(**PLOT,
         title="Feature Contribution to Risk",
         xaxis_title="Δ Probability", height=360)
+    fig_c.update_layout(margin=dict(l=240, r=90, t=48, b=40))
+    fig_c.update_xaxes(range=[float(cs_vals.min()) - cs_pad, float(cs_vals.max()) + cs_pad])
     
     # Advice title styling
     advice_title = "💡 Personalized Advice"
