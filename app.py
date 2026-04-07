@@ -60,6 +60,11 @@ def load_dataset() -> pd.DataFrame:
     df.dropna(inplace=True)
     df = df.astype(float)
 
+    # Normalize slope encoding to UCI convention: 1=Upsloping, 2=Flat, 3=Downsloping.
+    slope_values = set(df["slope"].dropna().astype(int).unique())
+    if slope_values.issubset({0, 1, 2}):
+        df["slope"] = df["slope"] + 1
+
     # Binarise target: 0 = no disease, 1 = disease (original: 0-4)
     df["target"] = (df["target"] > 0).astype(int)
 
@@ -169,7 +174,7 @@ FEATURE_CATEGORY_LABELS = {
     "fbs": {0: "Normal (<= 120)", 1: "Elevated (> 120)"},
     "restecg": {0: "Normal", 1: "ST-T Abnormality", 2: "LV Hypertrophy"},
     "exang": {0: "No", 1: "Yes"},
-    "slope": {0: "Downsloping", 1: "Flat", 2: "Upsloping"},
+    "slope": {1: "Upsloping", 2: "Flat", 3: "Downsloping"},
     "ca": {0: "0 vessels", 1: "1 vessel", 2: "2 vessels", 3: "3 vessels"},
     "thal": {1: "Normal", 2: "Fixed Defect", 3: "Reversible Defect"},
     "hypertension": {0: "Normal (< 140)", 1: "High (>= 140)"},
@@ -189,7 +194,7 @@ FEATURE_DEFINITIONS = {
     "thalach": "Maximum heart rate achieved during exercise (bpm). Lower values may indicate reduced cardiac fitness or disease.",
     "exang": "Exercise-induced angina (1=Yes, 0=No). Presence of chest pain during physical exertion; strong disease predictor.",
     "oldpeak": "ST depression induced by exercise relative to rest (mm). Measures electrical changes under cardiac stress; key diagnostic indicator.",
-    "slope": "Slope of peak exercise ST segment: 0=Downsloping, 1=Flat, 2=Upsloping. Describes abnormal changes in heart's electrical activity.",
+    "slope": "Slope of peak exercise ST segment: 1=Upsloping, 2=Flat, 3=Downsloping. Describes abnormal changes in heart's electrical activity.",
     "ca": "Number of major vessels (0-3) colored by fluoroscopy. Coronary artery calcification; more vessels = higher disease likelihood.",
     "thal": "Thalassemia type: 1=Normal, 2=Fixed Defect, 3=Reversible Defect. Blood condition affecting oxygen transport.",
     "hypertension": "Binary flag for resting BP ≥140 mmHg. Clinical indicator of hypertension status.",
@@ -1095,7 +1100,7 @@ PRED_SLIDERS = [
     ("thalach",  "Max Heart Rate (bpm)",          71,202,   2,   150, None),
     ("exang",    "Exercise Angina",                0,  1,   1,     0, {0:"No", 1:"Yes"}),
     ("oldpeak",  "ST Depression (0–6)",            0,  6, 0.1,   1.0, None),
-    ("slope",    "ST Slope (0–2)",                 0,  2,   1,     1, {0:"Downsloping", 1:"Flat", 2:"Upsloping"}),
+    ("slope",    "ST Slope (1–3)",                 1,  3,   1,     2, {1:"Upsloping", 2:"Flat", 3:"Downsloping"}),
     ("ca",       "Major Vessels (0–3)",            0,  3,   1,     0, {0:"0", 1:"1", 2:"2", 3:"3"}),
     ("thal",     "Thalassemia",                    1,  3,   1,     1, {1:"Normal", 2:"Fixed defect", 3:"Reversible"}),
 ]
