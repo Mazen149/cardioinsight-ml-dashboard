@@ -171,7 +171,7 @@ FEATURE_CATEGORY_LABELS = {
     "exang": {0: "No", 1: "Yes"},
     "slope": {0: "Downsloping", 1: "Flat", 2: "Upsloping"},
     "ca": {0: "0 vessels", 1: "1 vessel", 2: "2 vessels", 3: "3 vessels"},
-    "thal": {0: "Normal", 1: "Fixed Defect", 2: "Reversible Defect", 3: "Other"},
+    "thal": {1: "Normal", 2: "Fixed Defect", 3: "Reversible Defect"},
     "hypertension": {0: "Normal (< 140)", 1: "High (>= 140)"},
     "high_chol": {0: "Normal (< 240)", 1: "High (>= 240)"},
     "target": {0: "Healthy", 1: "Disease"},
@@ -1097,7 +1097,7 @@ PRED_SLIDERS = [
     ("oldpeak",  "ST Depression (0–6)",            0,  6, 0.1,   1.0, None),
     ("slope",    "ST Slope (0–2)",                 0,  2,   1,     1, {0:"Downsloping", 1:"Flat", 2:"Upsloping"}),
     ("ca",       "Major Vessels (0–3)",            0,  3,   1,     0, {0:"0", 1:"1", 2:"2", 3:"3"}),
-    ("thal",     "Thalassemia",                    0,  3,   1,     2, {0:"Normal", 1:"Fixed defect", 2:"Reversible", 3:"Other"}),
+    ("thal",     "Thalassemia",                    1,  3,   1,     1, {1:"Normal", 2:"Fixed defect", 3:"Reversible"}),
 ]
 PRED_IDS = [r[0] for r in PRED_SLIDERS]
 
