@@ -191,7 +191,7 @@ FEATURE_DEFINITIONS = {
     "oldpeak": "ST depression induced by exercise relative to rest (mm). Measures electrical changes under cardiac stress; key diagnostic indicator.",
     "slope": "Slope of peak exercise ST segment: 0=Downsloping, 1=Flat, 2=Upsloping. Describes abnormal changes in heart's electrical activity.",
     "ca": "Number of major vessels (0-3) colored by fluoroscopy. Coronary artery calcification; more vessels = higher disease likelihood.",
-    "thal": "Thalassemia type: 0=Normal, 1=Fixed defect, 2=Reversible defect, 3=Other. Blood condition affecting oxygen transport.",
+    "thal": "Thalassemia type: 1=Normal, 2=Fixed Defect, 3=Reversible Defect. Blood condition affecting oxygen transport.",
     "hypertension": "Binary flag for resting BP ≥140 mmHg. Clinical indicator of hypertension status.",
     "high_chol": "Binary flag for cholesterol ≥240 mg/dL. Identifies patients with elevated cholesterol levels.",
     "hr_reserve_pct": "Heart rate reserve as percentage of age-predicted maximum (thalach / (220-age)). Normalized measure of exercise capacity.",
