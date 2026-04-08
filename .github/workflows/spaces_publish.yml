@@ -15,7 +15,31 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
+      - name: Inject HF metadata into README
+        run: |
+          cat > hf_frontmatter.tmp <<'EOF'
+          ---
+          title: CardioInsight Heart Disease Dashboard
+          emoji: ❤️
+          colorFrom: red
+          colorTo: blue
+          sdk: docker
+          pinned: false
+          license: mit
+          short_description: Interactive Heart Disease Analytics — UCI Cleveland Dataset
+          ---
+
+          EOF
+          cat hf_frontmatter.tmp README.md > README.hf.md
+          mv README.hf.md README.md
+          rm -f hf_frontmatter.tmp
+      - name: Commit HF-only README variant
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "ci: add HF README frontmatter" || echo "No changes to commit"
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://Dash-healthcare:$HF_TOKEN@huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard main
+        run: git push --force https://Dash-healthcare:$HF_TOKEN@huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard HEAD:main

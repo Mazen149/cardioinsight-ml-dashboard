@@ -1,57 +1,19 @@
----
-title: CardioInsight Heart Disease Dashboard
-emoji: ❤️
-colorFrom: red
-colorTo: blue
-sdk: docker
-pinned: false
-license: mit
-short_description: Interactive Heart Disease Analytics — UCI Cleveland Dataset
----
+# CardioInsight - Heart Disease Analytics Dashboard
 
-# ❤️ CardioInsight — Heart Disease Analytics Dashboard
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Dash](https://img.shields.io/badge/Dash-2.17.1-008DE4?logo=plotly&logoColor=white)](https://dash.plotly.com/)
+[![Plotly](https://img.shields.io/badge/Plotly-5.22.0-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/python/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Hugging Face Space](https://img.shields.io/badge/Hugging%20Face-Live%20Demo-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard)
 
-CardioInsight is an interactive healthcare analytics app built with Dash + Plotly for exploring, modeling, and simulating heart disease risk using the UCI Cleveland dataset.
+Interactive healthcare analytics dashboard built with Dash and Plotly for exploring, modeling, and simulating heart disease risk using the UCI Cleveland dataset.
 
-Live Space:
-https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
+## 🌐 Live Demo
 
-## Quick Start (2 Minutes)
+[View on Hugging Face Spaces](https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard)
 
-### Local Run
-
-Windows (PowerShell):
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python app.py
-```
-
-Linux/macOS:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-
-Open:
-http://127.0.0.1:7860
-
-### Docker Run
-
-```bash
-docker build -t cardioinsight .
-docker run --rm -p 7860:7860 cardioinsight
-```
-
-Open:
-http://127.0.0.1:7860
-
-## What This Project Includes
+## 📊 What This Project Includes
 
 - Interactive exploratory analysis with multiple chart modes
 - Global palette theming for consistent visuals across all tabs
@@ -61,243 +23,185 @@ http://127.0.0.1:7860
 - Docker-ready deployment for Hugging Face Spaces
 - GitHub Actions workflow to sync repo updates to Hugging Face
 
-## Full Feature Breakdown
+## 🎯 Key Features
 
-### 1. Exploration Tab
-
+### Exploration Tab
 - Feature selector for all clinical variables
-- Chart mode switcher adapts by feature type:
-	- Numerical: Histogram, Box Plot, KDE
-	- Categorical: Bar Chart, Stacked Bar, Heatmap, Pie
-- Global palette selector (in header) applies across all tabs and all Exploration visuals
+- Chart mode switcher adapts by feature type (Histogram, Box Plot, KDE for numerical; Bar, Stacked Bar, Heatmap, Pie for categorical)
+- Global palette selector applies across all tabs
 - Correlation-with-target bar chart
-- Static comparison row with 3 charts:
-	- Age vs Max Heart Rate bubble scatter (bubble size = cholesterol)
-	- Diagnosis split donut chart
-	- Age distribution by sex chart
+- Static comparison row with 3 interactive charts
 
-### 2. Feature Importance Tab
-
-- Algorithm selector:
-	- Random Forest
-	- Gradient Boosting
-	- Logistic Regression
+### Feature Importance Tab
+- Algorithm selector (Random Forest, Gradient Boosting, Logistic Regression)
 - Top-N feature slider
 - Importance ranking bar chart
-- Correlation heatmap for selected top features
+- Correlation heatmap for selected features
 - Parallel coordinates plot for top 5 features
 
-### 3. Model Performance Tab
-
-- Multi-model comparison checklist:
-	- Random Forest
-	- Gradient Boosting
-	- Logistic Regression
-	- SVM
-- **Hyperparameter Tuning** (optimized for immediate feedback):
-	- Random Forest: n_estimators, max_depth, min_samples_split
-	- Gradient Boosting: n_estimators, learning_rate, max_depth
-	- Logistic Regression: C (regularization), penalty type, max_iter
-	- SVM: C, kernel type (RBF/Linear/Poly), gamma
-	- Dynamic UI visibility (controls shown only when model selected)
+### Model Performance Tab
+- Multi-model comparison checklist
+- Hyperparameter tuning (optimized for immediate feedback)
 - Adjustable train/test split (10% to 40% test)
-- KPI cards per selected model:
-	- Accuracy
-	- AUC
-	- Weighted F1 score
+- KPI cards (Accuracy, AUC, Weighted F1)
 - ROC curve comparison
-- Confusion matrix (first selected model)
-- 3-fold stratified cross-validation accuracy box plots (optimized for speed)
+- Confusion matrix visualization
+- 3-fold stratified cross-validation accuracy plots
 
-### 4. Predict Patient Tab
-
-- 13 interactive patient input sliders (all core clinical features)
-- Live display for each slider value
-- Prediction model selector:
-	- Random Forest
-	- Gradient Boosting
-	- Logistic Regression
+### Predict Patient Tab
+- 13 interactive patient input sliders
 - Real-time risk probability prediction
-- Risk status banner:
-	- Low risk
-	- High risk
-- Risk gauge chart
-- **Clinical Summary Analysis**:
-	- Patient description: Demographics, key symptoms, identified risk factors (hypertension, high cholesterol, exercise-induced angina)
-	- Personalized advice: Algorithm-specific and age-adjusted recommendations based on risk level
-- Feature contribution chart using perturbation-based sensitivity analysis
+- Risk status banner (Low/High risk)
+- Risk gauge visualization
+- **AI Clinical Summary** (Gemini LLM with automatic failover)
+- Feature contribution analysis
 
-## Dataset and Preprocessing
+## 💻 Tech Stack
 
-Primary source:
-- UCI Cleveland heart disease data:
-	https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data
+- **Python 3.11**
+- **Dash 2.17.1** - Interactive web framework
+- **Plotly 5.22.0** - Data visualization
+- **scikit-learn 1.5.0** - Machine learning models
+- **pandas 2.2.2** - Data manipulation
+- **numpy 1.26.4** - Numerical computing
+- **gunicorn 22.0.0** - Production server
+- **requests 2.32.3** - HTTP client
+- **python-dotenv 1.0.1** - Environment management
 
-Fallback source:
-- Local bundled file: data/Heart_disease.csv
+## 🚀 Quick Start
 
-Preprocessing pipeline:
-- Load bundled CSV from `data/Heart_disease.csv`
-- Drop rows with missing values (none in the bundled dataset)
-- Cast all columns to numeric float
-- Binarize target:
-	- `0` -> no disease
-	- `1..4` -> disease (mapped to `1`)
-- **Automatic Feature Engineering**:
-	- Hypertension flag: Binary indicator (BP ≥ 140 mmHg)
-	- High Cholesterol flag: Binary indicator (Cholesterol ≥ 240 mg/dL)
-	- HR Reserve %: Normalized heart rate capacity (max_heart_rate / (220 - age))
-
-Preprocessing strategy by feature type:
-- **StandardScaler**: Age, max heart rate, HR reserve % (normally distributed)
-- **RobustScaler**: Blood pressure, cholesterol, ST depression (outlier-prone)
-- **OrdinalEncoder**: Chest pain, ECG status, ST slope, vessels, thalassemia (categorical)
-- **SimpleImputer**: Handles missing values per feature type (median for numeric, most frequent for categorical)
-
-Current dataset summary after loading:
-- Raw rows: 303
-- Missing rows removed: none in bundled file
-- Input features: 13 base + 3 engineered = 16 total
-
-## Tech Stack
-
-- Python 3.11
-- Dash 2.17.1
-- Plotly 5.22.0
-- pandas 2.2.2
-- numpy 1.26.4
-- scikit-learn 1.5.0
-- gunicorn 22.0.0
-
-## Project Structure
-
-```text
-my-first-dash-app/
-├── app.py
-├── requirements.txt
-├── Dockerfile
-├── DEPLOY.md
-├── README.md
-├── .github/
-│   └── workflows/
-│       └── spaces_publish.yml
-├── data/
-│   └── Heart_disease.csv
-└── notebooks/
-	└── heart_disease_eda.ipynb
-```
-
-## Exploratory Data Analysis Notebook
-
-The **`notebooks/heart_disease_eda.ipynb`** Jupyter notebook contains comprehensive exploratory analysis including:
-- Data quality assessment and preprocessing
-- Distribution analysis of clinical features
-- Correlation analysis with target variable
-- Statistical summaries and outlier detection
-- Feature engineering insights
-- Preliminary model evaluation
-
-This notebook informs the design and feature selection in the interactive dashboard.
-
-## Run Locally
-
-### 1. Create and activate a virtual environment
-
-Windows (PowerShell):
+### Local Setup (Windows PowerShell)
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+# Edit .env and set GEMINI_API_KEY
+python app.py
 ```
 
-Linux/macOS:
+### Local Setup (Linux/macOS)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-### 3. Start the app
-
-```bash
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY
 python app.py
 ```
 
-Open:
-http://127.0.0.1:7860
+Visit: http://127.0.0.1:7860
 
-## Run with Docker
-
-Build:
+### Docker Deployment
 
 ```bash
 docker build -t cardioinsight .
-```
-
-Run:
-
-```bash
 docker run --rm -p 7860:7860 cardioinsight
 ```
 
-Open:
-http://127.0.0.1:7860
+Visit: http://127.0.0.1:7860
 
-## Deploy to Hugging Face Spaces
+## 🔧 Environment Variables
 
-This repo is configured for a Docker-based Hugging Face Space.
+Create `.env` from `.env.example`:
 
-Target Space:
-https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
-
-Quick Git workflow:
-
-```bash
-git clone https://huggingface.co/spaces/Dash-healthcare/cardioinsight-ml-dashboard
-cd cardioinsight-ml-dashboard
-# copy project files into this repo
-git add .
-git commit -m "Update CardioInsight"
-git push
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_TIMEOUT_SECONDS=20
 ```
 
-Detailed deployment steps are available in DEPLOY.md.
+For Hugging Face Spaces, set these as Space Secrets (do not commit `.env`).
 
-## CI/CD Sync Workflow
+## 📦 Dataset and Preprocessing
 
-GitHub Actions workflow file:
-- .github/workflows/spaces_publish.yml
+**Primary Source:**
+- UCI Cleveland Heart Disease Dataset: [Archive](https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data)
 
-What it does:
-- On push to `main`, pushes code to the Hugging Face Space repo.
+**Fallback Source:**
+- Local bundled file: `data/Heart_disease.csv`
 
-Required secret:
-- `HF_TOKEN` with write permission to the target Space.
+**Preprocessing Pipeline:**
+- Load bundled CSV
+- Cast all columns to numeric float
+- Binarize target: `0` = no disease, `1..4` = disease (mapped to `1`)
 
-## Troubleshooting
+**Feature Engineering:**
+- Hypertension flag (BP ≥ 140 mmHg)
+- High cholesterol flag (Cholesterol ≥ 240 mg/dL)
+- HR Reserve % (normalized heart rate capacity)
 
-- `You are not authorized to push to this repo`
-	- Ensure the Hugging Face token has write access.
-	- Ensure your account has write permission on `Dash-healthcare/cardioinsight-ml-dashboard`.
-- App fails at startup on Space
-	- Check Space logs for dependency or import errors.
-- Dataset fetch fails from UCI
-	- App automatically falls back to `data/Heart_disease.csv`.
-- Local package mismatch errors
-	- Use a clean virtual environment and reinstall from `requirements.txt`.
+**Scaling Strategy:**
+- **StandardScaler**: Age, max heart rate, HR reserve % (normally distributed)
+- **RobustScaler**: Blood pressure, cholesterol, ST depression (outlier-prone)
+- **OrdinalEncoder**: Chest pain, ECG, ST slope, vessels, thalassemia (categorical)
 
-## Notes
+**Dataset Summary:**
+- Total records: 303 patients
+- Input features: 13 base + 3 engineered = 16 total
+- Missing values: None
+- Class balance: ~54% no disease / ~46% disease
 
-- The dashboard retrains models and evaluates interactively in real-time, enabling instant feedback on hyperparameter adjustments
-- The app is tuned for **explainability and responsiveness**: 
-	- 3-fold stratified cross-validation for faster model evaluation
-	- Weighted F1 score for faster metric computation
-	- SVM decision function optimization to avoid probability calibration overhead
-- The app is intended for educational analytics and model exploration, not as a medical diagnosis system
-- All data preprocessing and feature engineering happens automatically; raw predictions are explained through clinical narrative and feature contribution analysis
+## 🔄 CI/CD to Hugging Face
+
+The GitHub Actions workflow (`.github/workflows/spaces_publish.yml`) syncs this repository to Hugging Face Spaces on every push to `main`.
+
+**Behavior:**
+- GitHub README stays clean (no Hugging Face metadata)
+- During CI, metadata header is prepended before pushing to Hugging Face
+- Force push ensures HF Space stays aligned
+
+**Required Secret:**
+- `HF_TOKEN` with write permission to `Dash-healthcare/cardioinsight-ml-dashboard`
+
+## 📁 Project Structure
+
+```
+.
+├── app.py                          # Main Dash application
+├── requirements.txt                # Python dependencies
+├── Dockerfile                      # Container configuration
+├── README.md                       # This file
+├── .env.example                    # Environment template
+├── .github/
+│   └── workflows/
+│       └── spaces_publish.yml      # CI/CD workflow
+├── assets/
+│   └── style.css                   # UI styling
+├── data/
+│   └── Heart_disease.csv           # Dataset
+└── notebooks/
+    └── heart_disease_eda.ipynb     # EDA & preprocessing
+```
+
+## 📔 Exploratory Data Analysis
+
+The **`notebooks/heart_disease_eda.ipynb`** Jupyter notebook contains:
+- Data quality assessment and preprocessing
+- Distribution analysis of clinical features
+- Correlation analysis with target variable
+- Statistical summaries and outlier detection
+- Feature engineering walkthrough
+- Preliminary model evaluation
+
+This notebook informs the interactive dashboard design.
+
+## ⚖️ License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 📋 Disclaimer
+
+This project is for **educational analytics and machine learning exploration only**. It is **not** intended as a medical diagnosis tool or substitute for professional medical advice. Always consult qualified healthcare professionals for clinical decisions.
+
+## 🛠️ Notes
+
+- The dashboard retrains models in real-time, enabling instant feedback on hyperparameter adjustments
+- Optimized for explainability and responsiveness:
+  - 3-fold stratified cross-validation for faster evaluation
+  - Weighted F1 score for efficient metric computation
+  - SVM decision function optimization to avoid calibration overhead
+- All preprocessing and feature engineering happens automatically
+- Predictions are explained through clinical narrative and feature contribution analysis

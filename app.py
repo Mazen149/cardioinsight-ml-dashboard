@@ -7,11 +7,16 @@
 """
 
 import os
+import json
+import time
 import warnings
+from functools import lru_cache
 warnings.filterwarnings("ignore")
 
 import pandas as pd
 import numpy as np
+import requests
+from dotenv import load_dotenv
 
 import dash
 from dash import dcc, html, Input, Output
@@ -30,6 +35,25 @@ from sklearn.metrics import (
     confusion_matrix, roc_curve, auc,
     accuracy_score, f1_score,
 )
+
+load_dotenv()
+
+GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-2.5-flash-lite").strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+try:
+    GEMINI_TIMEOUT_SECONDS = float((os.getenv("GEMINI_TIMEOUT_SECONDS") or "20").strip())
+except ValueError:
+    GEMINI_TIMEOUT_SECONDS = 20.0
+
+GEMINI_FALLBACK_MODELS = [
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+]
+
+if not GEMINI_API_KEY:
+    print("[WARN] GEMINI_API_KEY is not set. Predict tab clinical text requires Gemini (LLM-only mode).")
 
 # ──────────────────────────────────────────────────────────────
 # 1.  LOAD REAL UCI HEART DISEASE DATASET & FEATURE ENGINEERING
@@ -1167,33 +1191,75 @@ def pred_layout():
                            "letterSpacing": "1px", "textTransform": "uppercase",
                            "borderBottom": f"1px solid {BORDER}",
                            "paddingBottom": "12px"}),
-            
-            # Clinical Profile Card
-            html.Div([
-                html.H4("📋 Clinical Profile", style={
-                    "color": C1, "fontSize": "18px", "margin": "0 0 12px",
-                    "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
-                }),
-                html.P(id="p-description", style={
-                    "color": TEXT, "fontSize": "16px", "lineHeight": "1.95",
-                    "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
-                    "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
-                }),
-            ], style={"marginBottom": "14px"}),
-            
-            # Advice Card
-            html.Div([
-                html.H4(id="p-advice-title", style={
-                    "fontSize": "18px", "margin": "0 0 12px",
-                    "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
-                }),
-                html.P(id="p-advice", style={
-                    "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
-                    "margin": "0", "padding": "16px 18px",
-                    "borderRadius": "8px",
-                    "fontFamily": "JetBrains Mono, monospace"
-                }),
-            ]),
+            html.Button(
+                "✨ Generate Clinical Analysis and AI Advices",
+                id="p-generate-ai",
+                n_clicks=0,
+                style={
+                    "background": f"linear-gradient(135deg, {C1} 0%, #0066CC 100%)",
+                    "color": "#FFFFFF",
+                    "border": "none",
+                    "borderRadius": "12px",
+                    "padding": "14px 28px",
+                    "fontWeight": "700",
+                    "fontSize": "15px",
+                    "cursor": "pointer",
+                    "marginBottom": "20px",
+                    "boxShadow": f"0 4px 15px rgba(88, 166, 255, 0.4)",
+                    "transition": "all 0.3s ease",
+                    "letterSpacing": "0.5px",
+                    "textTransform": "none",
+                    "width": "100%",
+                },
+            ),
+
+            dcc.Loading(
+                id="p-analysis-loading",
+                type="circle",
+                color=C1,
+                children=html.Div([
+                    # Clinical Profile Card
+                    html.Div([
+                        html.H4("📋 Clinical Profile", style={
+                            "color": C1, "fontSize": "18px", "margin": "0 0 12px",
+                            "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
+                        }),
+                        html.P(
+                            id="p-description",
+                            children="",
+                            style={
+                                "color": TEXT, "fontSize": "16px", "lineHeight": "1.95",
+                                "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
+                                "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
+                            },
+                        ),
+                    ], id="p-profile-card", style={"marginBottom": "14px", "display": "none"}),
+
+                    # Advice Card
+                    html.Div([
+                        html.H4(
+                            id="p-advice-title",
+                            children="AI Advices",
+                            style={
+                                "color": C1,
+                                "fontSize": "18px", "margin": "0 0 12px",
+                                "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
+                            },
+                        ),
+                        html.P(
+                            id="p-advice",
+                            children="",
+                            style={
+                                "color": TEXT,
+                                "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
+                                "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
+                                "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
+                                "fontFamily": "JetBrains Mono, monospace"
+                            },
+                        ),
+                    ], id="p-advice-card", style={"display": "none"}),
+                ]),
+            ),
         ], style={**card_s(), "marginTop": "20px"}),
     ])
 
@@ -1204,66 +1270,292 @@ for _fid, *_ in PRED_SLIDERS:
     def _disp(v, fid=_fid): return str(v)
 
 
-def generate_clinical_summary(vals, prob, pred):
-    """Generate clinical description and personalized advice based on patient values."""
-    age = int(vals['age'])
-    sex = "male" if vals['sex'] == 1 else "female"
-    cp_type = int(vals['cp'])
-    has_hypertension = vals['trestbps'] >= 140
-    has_high_chol = vals['chol'] >= 240
-    has_exang = vals['exang'] == 1
-    oldpeak_val = vals['oldpeak']
-    hr_reserve = vals['thalach'] / (220 - age)
-    
-    # ─── BUILD CLINICAL DESCRIPTION ───
-    description = f"This {age}-year-old {sex} patient "
-    
-    # Describe symptom/presentation
-    cp_descriptions = {
-        0: "presents with asymptomatic status",
-        1: "reports atypical angina symptoms",
-        2: "experiences non-anginal chest pain",
-        3: "has typical angina symptoms"
+def _llm_unavailable_message(reason: str):
+    """Message shown only when LLM output cannot be retrieved."""
+    return (
+        "Clinical profile could not be generated because Gemini response is currently unavailable.",
+        "LLM Response Unavailable",
+        "\n".join([
+            f"• {reason}",
+            "• Verify GEMINI_API_KEY and network connectivity.",
+            "• Click Generate again in a few seconds.",
+            "• No rule-based fallback was used.",
+            "• Once Gemini responds, content will come directly from the LLM.",
+        ]),
+    )
+
+
+def _candidate_gemini_models():
+    models = [GEMINI_MODEL] + GEMINI_FALLBACK_MODELS
+    out = []
+    for m in models:
+        m = (m or "").strip()
+        if m and m not in out:
+            out.append(m)
+    return out
+
+
+def _extract_gemini_error(status_code: int, response_text: str):
+    text = (response_text or "").strip()
+    message = ""
+
+    try:
+        payload = json.loads(text)
+        if isinstance(payload, dict):
+            message = str(payload.get("error", {}).get("message", "")).strip()
+    except Exception:
+        message = ""
+
+    if not message and "GoogleSorry" in text:
+        message = (
+            "Google temporarily blocked automated queries from this network "
+            "(GoogleSorry). Try another network or retry later."
+        )
+
+    if not message:
+        message = f"Gemini API returned HTTP {status_code}."
+
+    # Keep UI message concise and readable.
+    message = " ".join(message.split())
+    return message[:320]
+
+
+def _clean_json_response(raw_text: str):
+    text = (raw_text or "").strip()
+    if not text:
+        return None
+
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if len(lines) >= 3:
+            text = "\n".join(lines[1:-1]).strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except json.JSONDecodeError:
+                return None
+        return None
+
+
+def _gemini_prompt(vals, prob, pred, algo):
+    sex_map = {0: "Female", 1: "Male"}
+    cp_map = {0: "Asymptomatic", 1: "Atypical angina", 2: "Non-anginal pain", 3: "Typical angina"}
+    restecg_map = {0: "Normal", 1: "ST-T abnormality", 2: "LV hypertrophy"}
+    exang_map = {0: "No", 1: "Yes"}
+    slope_map = {1: "Upsloping", 2: "Flat", 3: "Downsloping"}
+    thal_map = {1: "Normal", 2: "Fixed defect", 3: "Reversible defect"}
+
+    hr_reserve = vals["thalach"] / (220 - vals["age"])
+
+    return f"""
+You are a clinical decision-support writer for an educational heart dashboard.
+
+Rules:
+- Do not provide a diagnosis.
+- Do not mention being an AI.
+- Keep language professional, clear, and patient-facing.
+- Include realistic preventive actions and when to seek urgent care if relevant.
+- Do not mention model uncertainty jargon.
+- Generate both profile and advice only from the patient data below.
+- Avoid generic boilerplate and tailor details to this exact patient profile.
+- Keep wording natural and varied while remaining clinically consistent.
+
+Patient profile:
+- Age: {int(vals['age'])}
+- Sex: {sex_map.get(int(vals['sex']), 'Unknown')}
+- Chest pain type: {cp_map.get(int(vals['cp']), 'Unknown')}
+- Resting blood pressure: {int(vals['trestbps'])} mmHg
+- Cholesterol: {int(vals['chol'])} mg/dL
+- Fasting blood sugar > 120 mg/dL: {'Yes' if int(vals['fbs']) == 1 else 'No'}
+- Resting ECG: {restecg_map.get(int(vals['restecg']), 'Unknown')}
+- Max heart rate: {int(vals['thalach'])} bpm
+- Exercise-induced angina: {exang_map.get(int(vals['exang']), 'Unknown')}
+- ST depression (oldpeak): {vals['oldpeak']:.1f}
+- ST slope: {slope_map.get(int(vals['slope']), 'Unknown')}
+- Major vessels (ca): {int(vals['ca'])}
+- Thalassemia: {thal_map.get(int(vals['thal']), 'Unknown')}
+- Derived: Hypertension={'Yes' if vals['trestbps'] >= 140 else 'No'}, High cholesterol={'Yes' if vals['chol'] >= 240 else 'No'}, HR reserve={hr_reserve:.2f}
+
+Model context:
+- Model used: {ALGO_NAMES.get(algo, algo)}
+- Predicted heart disease probability: {prob:.1%}
+- Risk label (>=50%): {'High risk' if pred else 'Lower risk'}
+
+Return valid JSON only with this schema:
+{{
+  "description": "2-4 sentences describing the clinical profile and key risk factors.",
+  "advice_title": "Short title, max 6 words.",
+    "advice": "5-7 bullet lines, each starts with •"
+}}
+""".strip()
+
+
+def _generate_ai_summary_uncached(vals, prob, pred, algo):
+    if not GEMINI_API_KEY:
+        return _llm_unavailable_message("Gemini API key is missing.")
+
+    payload = {
+        "contents": [{"parts": [{"text": _gemini_prompt(vals, prob, pred, algo)}]}],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 1200,
+            "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
     }
-    description += cp_descriptions.get(cp_type, "")
-    
-    # Add key risk factors
-    risk_factors = []
-    if has_hypertension:
-        risk_factors.append(f"elevated blood pressure ({int(vals['trestbps'])} mmHg)")
-    if has_high_chol:
-        risk_factors.append(f"high cholesterol ({int(vals['chol'])} mg/dL)")
-    if has_exang:
-        risk_factors.append("exercise-induced angina")
-    if oldpeak_val >= 1.0:
-        risk_factors.append(f"significant ST depression ({oldpeak_val:.1f} mm)")
-    
-    if risk_factors:
-        description += " with " + ", ".join(risk_factors) + "."
-    else:
-        description += " with no significant risk factors noted."
-    
-    description += f" The model indicates a {prob:.0%} probability of heart disease."
-    
-    # ─── BUILD PERSONALIZED ADVICE ───
-    if pred:
-        advice = "⚠️  HIGH RISK — ACTION RECOMMENDED\n\n"
-        if has_hypertension and has_high_chol:
-            advice += "• Urgent medical evaluation needed\n• Aggressive BP & cholesterol management with medication\n• Reduce salt intake (<2,300mg daily) and saturated fats\n• Exercise under medical supervision only\n• Monitor BP regularly at home"
-        elif has_hypertension:
-            advice += "• Consult cardiologist promptly\n• Focus on BP control through medication\n• Practice stress reduction techniques (yoga, meditation)\n• Limit sodium intake to <2,300mg daily\n• Regular aerobic exercise (with medical clearance)"
-        elif has_high_chol:
-            advice += "• Get comprehensive cardiac workup\n• Start or continue statin therapy\n• Increase soluble fiber intake\n• Reduce trans fats and processed foods\n• Consider lipid panel monitoring monthly"
-        else:
-            advice += "• Schedule cardiac evaluation soon\n• Consider stress testing (ECG/imaging)\n• Assess exercise capacity with physician\n• Lifestyle modifications to reduce future risk\n• Follow-up cardiology visit recommended"
-    else:
-        advice = "[OK] LOW RISK MAINTAIN HEALTHY HABITS\n\n"
-        if age >= 50:
-            advice += "• Continue regular health screening (every 2-3 years)\n• Annual cardiovascular checkup recommended\n• Maintain current healthy lifestyle\n• Consider periodic stress testing per physician\n• Monitor vital signs regularly"
-        else:
-            advice += "• Maintain heart-healthy lifestyle\n• Exercise 150 minutes/week (moderate intensity)\n• Eat balanced diet (Mediterranean style preferred)\n• Keep annual follow-up visits\n• Recheck status at age 40-50"
-    
-    return description, advice
+
+    last_error = "Unknown Gemini error."
+    candidate_models = _candidate_gemini_models()
+    for model_idx, model_name in enumerate(candidate_models):
+        # Give the preferred model a short retry window for transient demand spikes.
+        max_attempts = 3 if model_idx == 0 else 1
+
+        for attempt in range(max_attempts):
+            endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+            try:
+                response = requests.post(
+                    endpoint,
+                    params={"key": GEMINI_API_KEY},
+                    json=payload,
+                    timeout=GEMINI_TIMEOUT_SECONDS,
+                )
+            except Exception as exc:
+                last_error = f"{model_name}: request failed ({exc})."
+                if attempt < max_attempts - 1:
+                    time.sleep(1.2 * (attempt + 1))
+                    continue
+                break
+
+            if response.status_code >= 400:
+                last_error = f"{model_name}: {_extract_gemini_error(response.status_code, response.text)}"
+                if response.status_code in (429, 503) and attempt < max_attempts - 1:
+                    time.sleep(1.2 * (attempt + 1))
+                    continue
+                break
+
+            try:
+                data = response.json()
+            except Exception:
+                last_error = f"{model_name}: API response was not valid JSON."
+                if attempt < max_attempts - 1:
+                    time.sleep(1.2 * (attempt + 1))
+                    continue
+                break
+
+            candidate = data.get("candidates", [{}])[0]
+            finish_reason = str(candidate.get("finishReason", "")).strip()
+            parts = candidate.get("content", {}).get("parts", [])
+            raw_text = "\n".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
+
+            if not raw_text:
+                last_error = f"{model_name}: Gemini returned an empty response."
+                if attempt < max_attempts - 1:
+                    time.sleep(1.2 * (attempt + 1))
+                    continue
+                break
+
+            # If generation was cut by token limit, retry preferred model quickly.
+            if finish_reason == "MAX_TOKENS" and attempt < max_attempts - 1:
+                time.sleep(1.0)
+                continue
+
+            parsed = _clean_json_response(raw_text)
+            if isinstance(parsed, dict):
+                description = str(
+                    parsed.get("description")
+                    or parsed.get("clinical_profile")
+                    or parsed.get("profile")
+                    or ""
+                ).strip()
+                advice_title = str(parsed.get("advice_title", "")).strip() or "AI Advice"
+
+                advice_value = (
+                    parsed.get("advice")
+                    or parsed.get("advice_bullets")
+                    or parsed.get("recommendations")
+                    or parsed.get("bullets")
+                    or ""
+                )
+                if isinstance(advice_value, list):
+                    lines = []
+                    for line in advice_value:
+                        text_line = str(line).strip()
+                        if not text_line:
+                            continue
+                        if not text_line.startswith("•"):
+                            text_line = f"• {text_line.lstrip('-* ').strip()}"
+                        lines.append(text_line)
+                    advice = "\n".join(lines)
+                else:
+                    advice = str(advice_value).strip()
+
+                if description and advice:
+                    return description[:1000], advice_title[:80], advice[:1800]
+
+            # LLM passthrough mode: if JSON parsing fails, still use LLM raw output as-is.
+            text = raw_text
+            if text.startswith("```"):
+                lines = text.splitlines()
+                if len(lines) >= 3:
+                    text = "\n".join(lines[1:-1]).strip()
+
+            chunks = [chunk.strip() for chunk in text.split("\n\n") if chunk.strip()]
+            if len(chunks) >= 2:
+                description = chunks[0]
+                advice = "\n\n".join(chunks[1:])
+            else:
+                description = text
+                advice = text
+
+            return description[:1000], "AI Advice (LLM)", advice[:1800]
+
+    return _llm_unavailable_message(last_error)
+
+
+class _DoNotCacheLLMResult(Exception):
+    def __init__(self, result):
+        super().__init__("Do not cache unavailable LLM result")
+        self.result = result
+
+
+def _build_exact_llm_cache_payload(vals, prob, pred, algo):
+    # Exact-match cache key: no rounding/quantization on feature values.
+    payload = {
+        "vals": {fid: float(vals[fid]) for fid in PRED_IDS},
+        "prob": float(prob),
+        "pred": int(pred),
+        "algo": str(algo),
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+@lru_cache(maxsize=512)
+def _generate_ai_summary_cached(payload_json: str):
+    payload = json.loads(payload_json)
+    vals = {k: float(v) for k, v in payload["vals"].items()}
+    prob = float(payload["prob"])
+    pred = int(payload["pred"])
+    algo = str(payload["algo"])
+
+    result = _generate_ai_summary_uncached(vals, prob, pred, algo)
+    if result[1] == "LLM Response Unavailable":
+        # Keep transient quota/network issues out of cache so retries can recover.
+        raise _DoNotCacheLLMResult(result)
+    return result
+
+
+def generate_ai_clinical_summary(vals, prob, pred, algo):
+    payload_json = _build_exact_llm_cache_payload(vals, prob, pred, algo)
+    try:
+        return _generate_ai_summary_cached(payload_json)
+    except _DoNotCacheLLMResult as exc:
+        return exc.result
 
 
 @app.callback(
@@ -1271,18 +1563,22 @@ def generate_clinical_summary(vals, prob, pred):
     Output("p-gauge",   "figure"),
     Output("p-contrib", "figure"),
     Output("p-description", "children"),
+    Output("p-profile-card", "style"),
     Output("p-advice-title", "children"),
     Output("p-advice-title", "style"),
     Output("p-advice",  "children"),
     Output("p-advice",  "style"),
+    Output("p-advice-card", "style"),
     [Input(f"p-{fid}", "value") for fid in PRED_IDS],
     Input("p-algo", "value"),
     Input("global-theme", "value"),
+    Input("p-generate-ai", "n_clicks"),
 )
 def upd_pred(*args):
     vals = {fid: float(v) for fid, v in zip(PRED_IDS, args[:len(PRED_IDS)])}
-    algo = args[-2]
-    theme = args[-1]
+    algo = args[-3]
+    theme = args[-2]
+    n_clicks = args[-1]
     healthy_color, disease_color = THEME_MAP.get(theme, THEME_MAP["br"])
     
     # Build dataframe with user values and compute engineered features
@@ -1303,9 +1599,6 @@ def upd_pred(*args):
     color = disease_color if pred else healthy_color
     icon  = "[!]" if pred else "[OK]"
     label = "HIGH RISK — Disease Likely" if pred else "LOW RISK — No Disease Detected"
-    
-    # Generate clinical summary
-    description, advice = generate_clinical_summary(vals, prob, pred)
 
     # Banner - only risk assessment
     banner = html.Div([
@@ -1378,22 +1671,59 @@ def upd_pred(*args):
     fig_c.update_layout(margin=dict(l=240, r=90, t=48, b=40))
     fig_c.update_xaxes(range=[float(cs_vals.min()) - cs_pad, float(cs_vals.max()) + cs_pad])
     
-    # Advice title styling
-    advice_title = "💡 Personalized Advice"
-    advice_title_style = {
-        "color": color, "fontSize": "18px", "margin": "0 0 12px",
-        "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
-    }
-    
-    # Advice styling
-    advice_style = {
-        "color": TEXT, "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
-        "margin": "0", "padding": "16px 18px", "background": f"{color}14",
-        "borderRadius": "8px", "borderLeft": f"4px solid {color}",
-        "fontFamily": "JetBrains Mono, monospace"
-    }
+    # Only generate LLM analysis when the dedicated button is clicked.
+    triggered_id = None
+    if dash.callback_context and dash.callback_context.triggered:
+        triggered_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    slider_trigger_ids = {f"p-{fid}" for fid in PRED_IDS}
 
-    return banner, fig_g, fig_c, description, advice_title, advice_title_style, advice, advice_style
+    if triggered_id in slider_trigger_ids:
+        # Reset generated analysis whenever feature values change.
+        description_out = dash.no_update
+        profile_card_style_out = {"marginBottom": "14px", "display": "none"}
+        advice_title_out = dash.no_update
+        advice_title_style_out = dash.no_update
+        advice_out = dash.no_update
+        advice_style_out = dash.no_update
+        advice_card_style_out = {"display": "none"}
+    elif triggered_id == "p-generate-ai" and (n_clicks or 0) > 0:
+        description, _, advice = generate_ai_clinical_summary(vals, prob, pred, algo)
+        profile_card_style_out = {"marginBottom": "14px", "display": "block"}
+        advice_title_out = "AI Advices"
+        advice_title_style_out = {
+            "color": color, "fontSize": "18px", "margin": "0 0 12px",
+            "fontWeight": "700", "letterSpacing": "0.5px"
+        }
+        advice_out = advice
+        advice_style_out = {
+            "color": TEXT, "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
+            "margin": "0", "padding": "16px 18px", "background": f"{color}14",
+            "borderRadius": "8px", "borderLeft": f"4px solid {color}",
+            "fontFamily": "JetBrains Mono, monospace"
+        }
+        advice_card_style_out = {"display": "block"}
+        description_out = description
+    else:
+        description_out = dash.no_update
+        profile_card_style_out = dash.no_update
+        advice_title_out = dash.no_update
+        advice_title_style_out = dash.no_update
+        advice_out = dash.no_update
+        advice_style_out = dash.no_update
+        advice_card_style_out = dash.no_update
+
+    return (
+        banner,
+        fig_g,
+        fig_c,
+        description_out,
+        profile_card_style_out,
+        advice_title_out,
+        advice_title_style_out,
+        advice_out,
+        advice_style_out,
+        advice_card_style_out,
+    )
 
 
 # ──────────────────────────────────────────────────────────────
