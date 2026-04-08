@@ -198,7 +198,7 @@ FEATURE_CATEGORY_LABELS = {
     "fbs": {0: "Normal (<= 120)", 1: "Elevated (> 120)"},
     "restecg": {0: "Normal", 1: "ST-T Abnormality", 2: "LV Hypertrophy"},
     "exang": {0: "No", 1: "Yes"},
-    "slope": {1: "Upsloping", 2: "Flat", 3: "Downsloping"},
+    "slope": {0: "Upsloping", 1: "Flat", 2: "Downsloping"},
     "ca": {0: "0 vessels", 1: "1 vessel", 2: "2 vessels", 3: "3 vessels"},
     "thal": {1: "Normal", 2: "Fixed Defect", 3: "Reversible Defect"},
     "hypertension": {0: "Normal (< 140)", 1: "High (>= 140)"},
@@ -218,7 +218,7 @@ FEATURE_DEFINITIONS = {
     "thalach": "Maximum heart rate achieved during exercise (bpm). Lower values may indicate reduced cardiac fitness or disease.",
     "exang": "Exercise-induced angina (1=Yes, 0=No). Presence of chest pain during physical exertion; strong disease predictor.",
     "oldpeak": "ST depression induced by exercise relative to rest (mm). Measures electrical changes under cardiac stress; key diagnostic indicator.",
-    "slope": "Slope of peak exercise ST segment: 1=Upsloping, 2=Flat, 3=Downsloping. Describes abnormal changes in heart's electrical activity.",
+    "slope": "Slope of peak exercise ST segment: 0=Upsloping, 1=Flat, 2=Downsloping. Describes abnormal changes in heart's electrical activity.",
     "ca": "Number of major vessels (0-3) colored by fluoroscopy. Coronary artery calcification; more vessels = higher disease likelihood.",
     "thal": "Thalassemia type: 1=Normal, 2=Fixed Defect, 3=Reversible Defect. Blood condition affecting oxygen transport.",
     "hypertension": "Binary flag for resting BP ≥140 mmHg. Clinical indicator of hypertension status.",
@@ -525,36 +525,73 @@ def upd_eda(feature, ctype, theme):
                               xaxis_title=lab, yaxis_title="Density")
     else:
         # Categorical features: Bar Chart, Stacked, Heatmap, Pie
+        display_feature = f"{feature}_label"
+        category_order = None
+
+        if feature in FEATURE_CATEGORY_LABELS:
+            label_map = FEATURE_CATEGORY_LABELS[feature]
+
+            def to_class_name(val):
+                if pd.isna(val):
+                    return "Unknown"
+                if val in label_map:
+                    return label_map[val]
+                if isinstance(val, (float, np.floating)) and float(val).is_integer():
+                    int_val = int(val)
+                    if int_val in label_map:
+                        return label_map[int_val]
+                if isinstance(val, (int, np.integer)):
+                    int_val = int(val)
+                    if int_val in label_map:
+                        return label_map[int_val]
+                sval = str(val)
+                if sval in label_map:
+                    return label_map[sval]
+                try:
+                    int_val = int(sval)
+                    if int_val in label_map:
+                        return label_map[int_val]
+                except (TypeError, ValueError):
+                    pass
+                return sval
+
+            dff[display_feature] = dff[feature].apply(to_class_name)
+            category_order = list(label_map.values())
+        else:
+            dff[display_feature] = dff[feature].astype(str)
+
         if ctype == "bar":
             # Grouped bar chart with counts and percentages
-            freq_data = dff.groupby([feature, "Diagnosis"]).size().reset_index(name="Count")
+            freq_data = dff.groupby([display_feature, "Diagnosis"], sort=False).size().reset_index(name="Count")
             # Calculate percentages for each feature category
-            freq_data["Total"] = freq_data.groupby(feature)["Count"].transform("sum")
+            freq_data["Total"] = freq_data.groupby(display_feature)["Count"].transform("sum")
             freq_data["Pct"] = (freq_data["Count"] / freq_data["Total"] * 100).round(1)
-            fig1 = px.bar(freq_data, x=feature, y="Count", color="Diagnosis",
+            fig1 = px.bar(freq_data, x=display_feature, y="Count", color="Diagnosis",
                          color_discrete_map=cmap, barmode="group",
                          title=f"{lab} — Frequency by Diagnosis",
-                         labels={feature: lab},
+                         labels={display_feature: lab},
                          text="Pct",
+                         category_orders={display_feature: category_order} if category_order else None,
                          custom_data=["Pct", "Count"])
             fig1.update_traces(texttemplate="%{text:.1f}%", textposition="outside",
                               hovertemplate="<b>%{x}</b><br>%{fullData.name}<br>Count: %{customdata[1]}<br>Percentage: %{customdata[0]:.1f}%<extra></extra>")
         elif ctype == "stacked":
             # Stacked bar chart with percentages visible on bars
-            freq_data = dff.groupby([feature, "Diagnosis"]).size().reset_index(name="Count")
-            freq_data["Total"] = freq_data.groupby(feature)["Count"].transform("sum")
+            freq_data = dff.groupby([display_feature, "Diagnosis"], sort=False).size().reset_index(name="Count")
+            freq_data["Total"] = freq_data.groupby(display_feature)["Count"].transform("sum")
             freq_data["Pct"] = (freq_data["Count"] / freq_data["Total"] * 100).round(1)
-            fig1 = px.bar(freq_data, x=feature, y="Count", color="Diagnosis",
+            fig1 = px.bar(freq_data, x=display_feature, y="Count", color="Diagnosis",
                          color_discrete_map=cmap, barmode="stack",
                          title=f"{lab} — Stacked Distribution",
-                         labels={feature: lab},
+                         labels={display_feature: lab},
                          text="Pct",
+                         category_orders={display_feature: category_order} if category_order else None,
                          custom_data=["Pct", "Count"])
             fig1.update_traces(texttemplate="%{text:.1f}%", textposition="inside",
                               hovertemplate="<b>%{x}</b><br>%{fullData.name}<br>Count: %{customdata[1]}<br>Percentage: %{customdata[0]:.1f}%<extra></extra>")
         elif ctype == "heatmap":
             # Contingency table heatmap: categories vs diagnosis
-            contingency = pd.crosstab(dff[feature], dff["Diagnosis"])
+            contingency = pd.crosstab(dff[display_feature], dff["Diagnosis"])
             fig1 = go.Figure(data=go.Heatmap(
                 z=contingency.values,
                 x=contingency.columns,
@@ -573,15 +610,9 @@ def upd_eda(feature, ctype, theme):
                 feature_dist = pd.cut(dff[feature], bins=5).value_counts().sort_index()
                 labels = [f"{interval.left:.1f}-{interval.right:.1f}" for interval in feature_dist.index]
             else:
-                # For categorical features, show direct value counts with meaningful labels
-                feature_dist = dff[feature].value_counts()
-                # Get category labels if they exist, otherwise use raw values
-                if feature in FEATURE_CATEGORY_LABELS:
-                    label_map = FEATURE_CATEGORY_LABELS[feature]
-                    labels = [label_map.get(int(val) if isinstance(val, float) and val.is_integer() else val, str(val)) 
-                             for val in feature_dist.index]
-                else:
-                    labels = [str(int(val)) if isinstance(val, float) and val.is_integer() else str(val) for val in feature_dist.index]
+                # For categorical features, use class names directly.
+                feature_dist = dff[display_feature].value_counts()
+                labels = feature_dist.index.tolist()
             
             n_slices = len(feature_dist)
             steps = [i / max(1, n_slices - 1) for i in range(n_slices)]
