@@ -173,12 +173,12 @@ FEATURE_TYPES = {f: "numerical" for f in NUMERICAL_FEATURES}
 FEATURE_TYPES.update({f: "categorical" for f in CATEGORICAL_FEATURES})
 
 FEATURE_LABELS = {
-    "age":          "Age (years)",
-    "sex":          "Sex (1 = Male)",
+    "age":          "Age",
+    "sex":          "Sex",
     "cp":           "Chest Pain Type",
     "trestbps":     "Resting Blood Pressure",
     "chol":         "Serum Cholesterol (mg/dL)",
-    "fbs":          "Fasting Blood Sugar > 120",
+    "fbs":          "Fasting Blood Sugar",
     "restecg":      "Resting ECG",
     "thalach":      "Max Heart Rate Achieved",
     "exang":        "Exercise-Induced Angina",
@@ -188,7 +188,7 @@ FEATURE_LABELS = {
     "thal":         "Thalassemia",
     "hypertension": "Hypertension (BP ≥ 140)",
     "high_chol":    "High Cholesterol (≥ 240)",
-    "hr_reserve_pct": "HR Reserve %",
+    "hr_reserve_pct": "Heart Rate Reserve %",
 }
 
 # Category labels for categorical features (for nice pie chart labels)
@@ -208,22 +208,22 @@ FEATURE_CATEGORY_LABELS = {
 
 # Feature definitions for the Exploration tab
 FEATURE_DEFINITIONS = {
-    "age": "Patient's age in years. Older patients generally have higher cardiovascular risk.",
-    "sex": "Biological sex (0=Female, 1=Male). Males typically have higher heart disease prevalence in this dataset.",
-    "cp": "Type of chest pain: 0=Typical angina, 1=Atypical angina, 2=Non-anginal pain, 3=Asymptomatic. Describes the nature of chest discomfort experienced.",
-    "trestbps": "Systolic blood pressure at rest (mmHg). Normal is <120; elevated ≥140 indicates hypertension.",
-    "chol": "Serum cholesterol level (mg/dL). Higher levels (≥240) indicate increased cardiac risk.",
-    "fbs": "Fasting blood sugar level >120 mg/dL (1=Yes, 0=No). Indicator of glucose metabolism and diabetes risk.",
-    "restecg": "Resting electrocardiography results: 0=Normal, 1=ST-T abnormality, 2=Left ventricular hypertrophy. Shows electrical heart activity at rest.",
-    "thalach": "Maximum heart rate achieved during exercise (bpm). Lower values may indicate reduced cardiac fitness or disease.",
-    "exang": "Exercise-induced angina (1=Yes, 0=No). Presence of chest pain during physical exertion; strong disease predictor.",
-    "oldpeak": "ST depression induced by exercise relative to rest (mm). Measures electrical changes under cardiac stress; key diagnostic indicator.",
-    "slope": "Slope of peak exercise ST segment: 0=Upsloping, 1=Flat, 2=Downsloping. Describes abnormal changes in heart's electrical activity.",
-    "ca": "Number of major vessels (0-3) colored by fluoroscopy. Coronary artery calcification; more vessels = higher disease likelihood.",
-    "thal": "Thalassemia type: 1=Normal, 2=Fixed Defect, 3=Reversible Defect. Blood condition affecting oxygen transport.",
-    "hypertension": "Binary flag for resting BP ≥140 mmHg. Clinical indicator of hypertension status.",
-    "high_chol": "Binary flag for cholesterol ≥240 mg/dL. Identifies patients with elevated cholesterol levels.",
-    "hr_reserve_pct": "Heart rate reserve as percentage of age-predicted maximum (thalach / (220-age)). Normalized measure of exercise capacity.",
+    "age": "Patient's age in years. Older age is generally associated with higher cardiovascular risk.",
+    "sex": "Biological sex of the patient. Biological factors influence heart disease prevalence.",
+    "cp": "Type of chest pain experienced. Different chest pain patterns have varying clinical significance for heart disease diagnosis.",
+    "trestbps": "Systolic blood pressure at rest. Elevated blood pressure is a key risk factor for cardiovascular disease.",
+    "chol": "Serum cholesterol level. Higher cholesterol levels are associated with increased cardiac risk.",
+    "fbs": "Fasting blood sugar level. Elevated glucose metabolism is an important indicator of diabetes risk and cardiac health.",
+    "restecg": "Resting electrocardiography results. Shows the electrical activity of the heart at rest.",
+    "thalach": "Maximum heart rate achieved during exercise testing. Heart rate response to exercise indicates cardiac fitness and function.",
+    "exang": "Chest pain experienced during physical exertion. Exercise-induced symptoms are strong indicators of cardiac disease.",
+    "oldpeak": "ST segment depression induced by exercise relative to rest. Electrical changes under cardiac stress are key diagnostic indicators.",
+    "slope": "Slope of the ST segment during peak exercise. ST segment changes reflect electrical abnormalities in the heart.",
+    "ca": "Number of major coronary vessels with significant narrowing. Coronary artery calcification and narrowing directly relate to disease risk.",
+    "thal": "Thalassemia type and perfusion defects. Blood condition and oxygen supply to the heart affect cardiac function.",
+    "hypertension": "Indicator of elevated resting blood pressure. Hypertension is a major risk factor for heart disease.",
+    "high_chol": "Indicator of elevated cholesterol levels. High cholesterol is an important cardiovascular risk factor.",
+    "hr_reserve_pct": "Heart rate reserve as a normalized measure of cardiac exercise capacity. Reflects the heart's ability to increase output during exertion.",
 }
 
 # ──────────────────────────────────────────────────────────────
@@ -424,9 +424,9 @@ def eda_layout():
          ], style={"marginBottom": "20px", "paddingLeft": "6px", "borderLeft": f"4px solid {C1}"}),
 
         html.Div([
-            dcc.Graph(id="eda-main", figure=blank_fig(), style={"flex": "1.6"}),
-            dcc.Graph(id="eda-corr", figure=blank_fig(), style={"flex": "1"}),
-        ], style={"display": "flex", "gap": "14px"}),
+            dcc.Graph(id="eda-main", figure=blank_fig(), style={"flex": "1.6", "height": "500px"}),
+            dcc.Graph(id="eda-corr", figure=blank_fig(), style={"flex": "1", "height": "500px"}),
+        ], style={"display": "flex", "gap": "14px", "alignItems": "stretch"}),
 
         html.Div([
             dcc.Graph(id="eda-sexage", figure=blank_fig(), style={"flex": "1"}),
@@ -629,7 +629,7 @@ def upd_eda(feature, ctype, theme):
             )
 
     
-    fig1.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
+    fig1.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"), height=500)
 
     corr = df[FEATURES].corrwith(df["target"]).sort_values()
     corr_vals = corr.values.astype(float)
@@ -643,7 +643,7 @@ def upd_eda(feature, ctype, theme):
         textfont=dict(color=TEXT, size=16, family="JetBrains Mono, monospace"),
         cliponaxis=False,
     ))
-    fig2.update_layout(**PLOT, title="Correlation with Target", height=380,
+    fig2.update_layout(**PLOT, title="Correlation with Target", height=500,
                         xaxis_title="Pearson r")
     fig2.update_layout(margin=dict(l=250, r=80, t=48, b=40))
     fig2.update_xaxes(range=[float(corr_vals.min()) - corr_pad, float(corr_vals.max()) + corr_pad])
@@ -1145,21 +1145,32 @@ def upd_model(selected, split_pct,
 # ══════════════════════════════════════════════════════════════
 # Only base features are sliders (engineered features are computed)
 PRED_SLIDERS = [
-    ("age",      "Age (years)",                  29, 77,   1,    54, None),
-    ("sex",      "Sex",                            0,  1,   1,     1, {0:"Female", 1:"Male"}),
-    ("cp",       "Chest Pain Type (0–3)",          0,  3,   1,     0, {0:"Asympt", 1:"Atypical", 2:"Non-ang", 3:"Typical"}),
-    ("trestbps", "Resting BP (mmHg)",             94,200,   2,   130, None),
-    ("chol",     "Cholesterol (mg/dL)",           126,564,   5,   246, None),
-    ("fbs",      "Fasting Sugar > 120 mg/dL",     0,  1,   1,     0, {0:"No", 1:"Yes"}),
-    ("restecg",  "Resting ECG (0–2)",              0,  2,   1,     1, {0:"Normal", 1:"ST-T abnorm.", 2:"LV Hypertrophy"}),
-    ("thalach",  "Max Heart Rate (bpm)",          71,202,   2,   150, None),
-    ("exang",    "Exercise Angina",                0,  1,   1,     0, {0:"No", 1:"Yes"}),
-    ("oldpeak",  "ST Depression (0–6)",            0,  6, 0.1,   1.0, None),
-    ("slope",    "ST Slope (1–3)",                 1,  3,   1,     2, {1:"Upsloping", 2:"Flat", 3:"Downsloping"}),
-    ("ca",       "Major Vessels (0–3)",            0,  3,   1,     0, {0:"0", 1:"1", 2:"2", 3:"3"}),
-    ("thal",     "Thalassemia",                    1,  3,   1,     1, {1:"Normal", 2:"Fixed defect", 3:"Reversible"}),
+    ("age",      "Age",                         29, 77,   1,    54, None),
+    ("sex",      "Biological Sex",               0,  1,   1,     1, {0: "F", 1: "M"}),
+    ("cp",       "Chest Pain Type",              0,  3,   1,     0, {0: "Typ", 1: "Atyp", 2: "Non", 3: "Asym"}),
+    ("trestbps", "Resting Blood Pressure",      94, 200,  2,   130, None),
+    ("chol",     "Serum Cholesterol",          126, 564,  5,   246, None),
+    ("fbs",      "Fasting Blood Sugar",          0,  1,   1,     0, {0: "Norm", 1: "High"}),
+    ("restecg",  "Resting ECG",                  0,  2,   1,     1, {0: "Norm", 1: "ST-T", 2: "LVH"}),
+    ("thalach",  "Max Heart Rate",              71, 202,  2,   150, None),
+    ("exang",    "Exercise-Induced Angina",      0,  1,   1,     0, {0: "No", 1: "Yes"}),
+    ("oldpeak",  "ST Depression",                0,  6, 0.1,   1.0, None),
+    ("slope",    "ST Segment Slope",             1,  3,   1,     2, {1: "Up", 2: "Flat", 3: "Down"}),
+    ("ca",       "Major Vessels",                0,  3,   1,     0, {0: "0", 1: "1", 2: "2", 3: "3"}),
+    ("thal",     "Thalassemia Type",             1,  3,   1,     1, {1: "Norm", 2: "Fix", 3: "Rev"}),
 ]
 PRED_IDS = [r[0] for r in PRED_SLIDERS]
+
+PRED_VALUE_DISPLAY = {
+    "sex": {0: "Female", 1: "Male"},
+    "cp": {0: "Typical angina", 1: "Atypical angina", 2: "Non-anginal pain", 3: "Asymptomatic"},
+    "fbs": {0: "Normal", 1: "Elevated"},
+    "restecg": {0: "Normal", 1: "ST-T abnormality", 2: "LV hypertrophy"},
+    "exang": {0: "No", 1: "Yes"},
+    "slope": {1: "Upsloping", 2: "Flat", 3: "Downsloping"},
+    "ca": {0: "None", 1: "One", 2: "Two", 3: "Three"},
+    "thal": {1: "Normal", 2: "Fixed defect", 3: "Reversible defect"},
+}
 
 # Train prediction models on preprocessed data
 _PRED_MODELS = {
@@ -1169,79 +1180,76 @@ _PRED_MODELS = {
 }
 
 def pred_layout():
+    def fmt_num(v):
+        if isinstance(v, (int, np.integer)):
+            return str(int(v))
+        if isinstance(v, (float, np.floating)):
+            return f"{v:.1f}" if not float(v).is_integer() else str(int(v))
+        return str(v)
+
     def row(fid, lbl, mn, mx, step, val, marks):
-        m = marks or {mn: str(mn), mx: str(mx)}
+        m = marks or {mn: fmt_num(mn), mx: fmt_num(mx)}
+        display_map = PRED_VALUE_DISPLAY.get(fid)
+        if display_map:
+            initial_display = display_map.get(val, display_map.get(int(val), fmt_num(val)))
+        else:
+            initial_display = fmt_num(val)
         return html.Div([
-            html.Label(lbl, style={"color": SUB, "fontSize": "13px",
-                                   "width": "210px", "flexShrink": "0"}),
+            html.Div([
+                html.Label(lbl, className="pred-control-label"),
+                html.Span(id=f"p-{fid}-v", children=initial_display, className="pred-control-value"),
+            ], className="pred-control-head"),
             dcc.Slider(id=f"p-{fid}", min=mn, max=mx, step=step, value=val,
                        marks=m, tooltip={"placement":"top","always_visible":False},
-                      className="ci-slider ci-slider-flex"),
-            html.Span(id=f"p-{fid}-v", children=str(val),
-                      style={"color": C1, "fontSize": "13px", "fontWeight": "700",
-                             "width": "48px", "textAlign": "right", "flexShrink": "0"}),
-        ], style={"display":"flex","alignItems":"center","gap":"12px","marginBottom":"9px"})
+                      className="ci-slider"),
+        ], className="pred-control")
 
     return html.Div([
         html.Div([
             # Input panel
             html.Div([
-                html.H3("🩺  Patient Parameters",
-                        style={"color": C1, "margin": "0 0 20px", "fontSize": "16px",
-                               "letterSpacing": "1px", "textTransform": "uppercase",
-                               "borderBottom": f"1px solid {BORDER}",
-                               "paddingBottom": "12px"}),
-                *[row(*r) for r in PRED_SLIDERS],
                 html.Div([
-                    html.Label("Prediction Model", style=label_s()),
-                    dcc.Dropdown(id="p-algo",
-                        options=[{"label":"Random Forest",     "value":"rf"},
-                                 {"label":"Gradient Boosting", "value":"gb"},
-                                 {"label":"Logistic Regression","value":"lr"}],
-                        value="rf", clearable=False, className="ci-dropdown"),
-                ], style={"marginTop": "18px"}),
-            ], style={**card_s(flex="1")}),
+                    html.Div([
+                        html.H3("Patient Profile Inputs", className="pred-title"),
+                        html.P("Adjust clinical values for an instant and interpretable risk estimate.",
+                               className="pred-subtitle"),
+                    ], style={"flex": "1", "minWidth": "260px"}),
+                    html.Div([
+                        html.Label("Prediction Model", style=label_s()),
+                        dcc.Dropdown(id="p-algo",
+                            options=[{"label":"Random Forest",     "value":"rf"},
+                                     {"label":"Gradient Boosting", "value":"gb"},
+                                     {"label":"Logistic Regression","value":"lr"}],
+                            value="rf", clearable=False, className="ci-dropdown"),
+                    ], className="pred-model-wrap"),
+                ], className="pred-heading", style={"display": "flex", "justifyContent": "space-between", "alignItems": "flex-start", "gap": "14px", "flexWrap": "wrap"}),
+                html.Div([*[row(*r) for r in PRED_SLIDERS]], className="pred-controls-grid"),
+            ], className="pred-panel pred-panel-input", style=card_s()),
 
             # Output panel
             html.Div([
-                html.H3("📈  Result",
-                        style={"color": C1, "margin": "0 0 20px", "fontSize": "16px",
-                               "letterSpacing": "1px", "textTransform": "uppercase",
-                               "borderBottom": f"1px solid {BORDER}",
-                               "paddingBottom": "12px"}),
-                html.Div(id="p-banner"),
-                dcc.Graph(id="p-gauge", figure=blank_fig(280), style={"height": "280px"}),
-                dcc.Graph(id="p-contrib", figure=blank_fig(380), style={"height": "380px"}),
-            ], style={**card_s(flex="1")}),
-        ], style={"display": "flex", "gap": "20px"}),
-        
-        # Clinical Details Section (below all other content)
+                html.Div([
+                    html.H3("Risk Overview", className="pred-title"),
+                    html.P("Live prediction output updates as you tune the patient profile.", className="pred-subtitle"),
+                ], className="pred-heading"),
+                html.Div(id="p-banner", className="pred-banner-wrap"),
+                dcc.Graph(id="p-gauge", figure=blank_fig(240), style={"height": "240px"}),
+                dcc.Graph(id="p-contrib", figure=blank_fig(320), style={"height": "320px"}),
+            ], className="pred-panel pred-panel-output", style=card_s()),
+        ], className="pred-main-grid"),
+
         html.Div([
-            html.H3("📋 Clinical Analysis",
-                    style={"color": C1, "margin": "0 0 20px", "fontSize": "20px",
-                           "letterSpacing": "1px", "textTransform": "uppercase",
-                           "borderBottom": f"1px solid {BORDER}",
-                           "paddingBottom": "12px"}),
+            html.Div([
+                html.H3("AI Clinical Analysis", className="pred-title"),
+                html.P("Generate a tailored clinical narrative and action-focused guidance for the selected patient profile.",
+                       className="pred-subtitle"),
+            ], className="pred-heading"),
+
             html.Button(
-                "✨ Generate Clinical Analysis and AI Advices",
+                "✨ Generate AI Clinical Summary",
                 id="p-generate-ai",
                 n_clicks=0,
-                style={
-                    "background": f"linear-gradient(135deg, {C1} 0%, #0066CC 100%)",
-                    "color": "#FFFFFF",
-                    "border": "none",
-                    "borderRadius": "12px",
-                    "padding": "14px 28px",
-                    "fontWeight": "700",
-                    "fontSize": "15px",
-                    "cursor": "pointer",
-                    "marginBottom": "20px",
-                    "boxShadow": f"0 4px 15px rgba(88, 166, 255, 0.4)",
-                    "transition": "all 0.3s ease",
-                    "letterSpacing": "0.5px",
-                    "textTransform": "none",
-                    "width": "100%",
-                },
+                className="pred-ai-btn",
             ),
 
             dcc.Loading(
@@ -1249,32 +1257,30 @@ def pred_layout():
                 type="circle",
                 color=C1,
                 children=html.Div([
-                    # Clinical Profile Card
                     html.Div([
-                        html.H4("📋 Clinical Profile", style={
-                            "color": C1, "fontSize": "18px", "margin": "0 0 12px",
-                            "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
+                        html.H4("AI Clinical Profile", style={
+                            "color": C1, "fontSize": "16px", "margin": "0 0 10px",
+                            "fontWeight": "700", "letterSpacing": "0.4px", "textTransform": "uppercase"
                         }),
                         html.P(
                             id="p-description",
                             children="",
                             style={
-                                "color": TEXT, "fontSize": "16px", "lineHeight": "1.95",
-                                "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
+                                "color": TEXT, "fontSize": "15px", "lineHeight": "1.85",
+                                "margin": "0", "padding": "14px 16px", "background": f"{C1}14",
                                 "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
                             },
                         ),
-                    ], id="p-profile-card", style={"marginBottom": "14px", "display": "none"}),
+                    ], id="p-profile-card", style={"marginBottom": "12px", "display": "none"}),
 
-                    # Advice Card
                     html.Div([
                         html.H4(
                             id="p-advice-title",
-                            children="AI Advices",
+                            children="AI Clinical Guidance",
                             style={
                                 "color": C1,
-                                "fontSize": "18px", "margin": "0 0 12px",
-                                "fontWeight": "700", "letterSpacing": "0.5px", "textTransform": "uppercase"
+                                "fontSize": "16px", "margin": "0 0 10px",
+                                "fontWeight": "700", "letterSpacing": "0.4px", "textTransform": "uppercase"
                             },
                         ),
                         html.P(
@@ -1282,8 +1288,8 @@ def pred_layout():
                             children="",
                             style={
                                 "color": TEXT,
-                                "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
-                                "margin": "0", "padding": "16px 18px", "background": f"{C1}14",
+                                "fontSize": "15px", "lineHeight": "1.9", "whiteSpace": "pre-wrap",
+                                "margin": "0", "padding": "14px 16px", "background": f"{C1}14",
                                 "borderRadius": "8px", "borderLeft": f"4px solid {C1}",
                                 "fontFamily": "JetBrains Mono, monospace"
                             },
@@ -1291,14 +1297,33 @@ def pred_layout():
                     ], id="p-advice-card", style={"display": "none"}),
                 ]),
             ),
-        ], style={**card_s(), "marginTop": "20px"}),
+        ], className="pred-panel pred-ai-fullwidth", style={**card_s(), "marginTop": "18px"}),
     ])
 
 
 # Live slider display
-for _fid, *_ in PRED_SLIDERS:
+for _fid, *_rest in PRED_SLIDERS:
+    _marks = _rest[-1]
+    _display_map = PRED_VALUE_DISPLAY.get(_fid)
+
     @app.callback(Output(f"p-{_fid}-v", "children"), Input(f"p-{_fid}", "value"))
-    def _disp(v, fid=_fid): return str(v)
+    def _disp(v, marks=_marks, display_map=_display_map):
+        if display_map:
+            if v in display_map:
+                return str(display_map[v])
+            if isinstance(v, (float, np.floating)) and float(v).is_integer() and int(v) in display_map:
+                return str(display_map[int(v)])
+        elif marks:
+            if v in marks:
+                return str(marks[v])
+            if isinstance(v, (float, np.floating)) and float(v).is_integer() and int(v) in marks:
+                return str(marks[int(v)])
+
+        if isinstance(v, (int, np.integer)):
+            return str(int(v))
+        if isinstance(v, (float, np.floating)):
+            return f"{v:.1f}" if not float(v).is_integer() else str(int(v))
+        return str(v)
 
 
 def _llm_unavailable_message(reason: str):
@@ -1374,6 +1399,59 @@ def _clean_json_response(raw_text: str):
         return None
 
 
+def _target_advice_points(prob: float) -> int:
+    """Return target bullet count based on predicted risk probability."""
+    if prob < 0.50:
+        return 2
+    if prob < 0.65:
+        return 4
+    if prob < 0.80:
+        return 5
+    return 7
+
+
+def _normalize_advice_bullets(advice_text: str, prob: float) -> str:
+    """Convert free-form LLM text to a clean bullet list sized by risk level."""
+    target_points = _target_advice_points(prob)
+    raw = str(advice_text or "").strip()
+    if not raw:
+        return ""
+
+    lines = []
+    for row in raw.splitlines():
+        item = row.strip()
+        if not item:
+            continue
+        if item.startswith("•"):
+            item = item[1:].strip()
+        elif item.startswith("-") or item.startswith("*"):
+            item = item[1:].strip()
+        elif len(item) > 2 and item[0].isdigit() and item[1] in ".)":
+            item = item[2:].strip()
+        lines.append(item)
+
+    if len(lines) <= 1:
+        lines = [chunk.strip(" .;-") for chunk in raw.replace("\n", " ").split(". ") if chunk.strip()]
+
+    cleaned = []
+    seen = set()
+    for item in lines:
+        item = " ".join(str(item).split())
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(item)
+
+    if not cleaned:
+        cleaned = [raw]
+
+    selected = cleaned[:target_points]
+    return "\n".join([f"• {item}" for item in selected])
+
+
 def _gemini_prompt(vals, prob, pred, algo):
     sex_map = {0: "Female", 1: "Male"}
     cp_map = {0: "Asymptomatic", 1: "Atypical angina", 2: "Non-anginal pain", 3: "Typical angina"}
@@ -1383,6 +1461,12 @@ def _gemini_prompt(vals, prob, pred, algo):
     thal_map = {1: "Normal", 2: "Fixed defect", 3: "Reversible defect"}
 
     hr_reserve = vals["thalach"] / (220 - vals["age"])
+    advice_points = _target_advice_points(prob)
+    advice_rule = (
+        "Risk is low, so keep guidance concise and provide only 2 high-impact prevention bullets."
+        if advice_points == 2
+        else f"Provide exactly {advice_points} bullet lines, prioritized from most critical to least critical."
+    )
 
     return f"""
 You are a clinical decision-support writer for an educational heart dashboard.
@@ -1396,6 +1480,7 @@ Rules:
 - Generate both profile and advice only from the patient data below.
 - Avoid generic boilerplate and tailor details to this exact patient profile.
 - Keep wording natural and varied while remaining clinically consistent.
+- {advice_rule}
 
 Patient profile:
 - Age: {int(vals['age'])}
@@ -1422,7 +1507,7 @@ Return valid JSON only with this schema:
 {{
   "description": "2-4 sentences describing the clinical profile and key risk factors.",
   "advice_title": "Short title, max 6 words.",
-    "advice": "5-7 bullet lines, each starts with •"
+        "advice": "Exactly {advice_points} bullet lines, each starts with •"
 }}
 """.strip()
 
@@ -1526,6 +1611,8 @@ def _generate_ai_summary_uncached(vals, prob, pred, algo):
                 else:
                     advice = str(advice_value).strip()
 
+                advice = _normalize_advice_bullets(advice, prob)
+
                 if description and advice:
                     return description[:1000], advice_title[:80], advice[:1800]
 
@@ -1543,6 +1630,8 @@ def _generate_ai_summary_uncached(vals, prob, pred, algo):
             else:
                 description = text
                 advice = text
+
+            advice = _normalize_advice_bullets(advice, prob)
 
             return description[:1000], "AI Advice (LLM)", advice[:1800]
 
@@ -1663,7 +1752,7 @@ def upd_pred(*args):
         },
         title={"text": "Risk Score", "font": {"color": SUB, "size": 13}},
     ))
-    fig_g.update_layout(**PLOT, height=260)
+    fig_g.update_layout(**PLOT, height=240)
 
     # Perturbation-based feature contribution (using original features)
     X_means = df[PRED_IDS].mean().to_dict()
@@ -1693,13 +1782,13 @@ def upd_pred(*args):
         orientation="h", marker_color=bcol,
         text=[f"{v:+.3f}" for v in cs.values],
         textposition="outside",
-        textfont=dict(color=TEXT, size=16, family="JetBrains Mono, monospace"),
+        textfont=dict(color=TEXT, size=13, family="JetBrains Mono, monospace"),
         cliponaxis=False,
     ))
     fig_c.update_layout(**PLOT,
         title="Feature Contribution to Risk",
-        xaxis_title="Δ Probability", height=360)
-    fig_c.update_layout(margin=dict(l=240, r=90, t=48, b=40))
+        xaxis_title="Δ Probability", height=320)
+    fig_c.update_layout(margin=dict(l=190, r=70, t=48, b=40))
     fig_c.update_xaxes(range=[float(cs_vals.min()) - cs_pad, float(cs_vals.max()) + cs_pad])
     
     # Only generate LLM analysis when the dedicated button is clicked.
@@ -1711,7 +1800,7 @@ def upd_pred(*args):
     if triggered_id in slider_trigger_ids:
         # Reset generated analysis whenever feature values change.
         description_out = dash.no_update
-        profile_card_style_out = {"marginBottom": "14px", "display": "none"}
+        profile_card_style_out = {"marginBottom": "12px", "display": "none"}
         advice_title_out = dash.no_update
         advice_title_style_out = dash.no_update
         advice_out = dash.no_update
@@ -1719,16 +1808,16 @@ def upd_pred(*args):
         advice_card_style_out = {"display": "none"}
     elif triggered_id == "p-generate-ai" and (n_clicks or 0) > 0:
         description, _, advice = generate_ai_clinical_summary(vals, prob, pred, algo)
-        profile_card_style_out = {"marginBottom": "14px", "display": "block"}
-        advice_title_out = "AI Advices"
+        profile_card_style_out = {"marginBottom": "12px", "display": "block"}
+        advice_title_out = "AI Clinical Guidance"
         advice_title_style_out = {
-            "color": color, "fontSize": "18px", "margin": "0 0 12px",
-            "fontWeight": "700", "letterSpacing": "0.5px"
+            "color": color, "fontSize": "16px", "margin": "0 0 10px",
+            "fontWeight": "700", "letterSpacing": "0.4px", "textTransform": "uppercase"
         }
         advice_out = advice
         advice_style_out = {
-            "color": TEXT, "fontSize": "16px", "lineHeight": "2.0", "whiteSpace": "pre-wrap",
-            "margin": "0", "padding": "16px 18px", "background": f"{color}14",
+            "color": TEXT, "fontSize": "15px", "lineHeight": "1.9", "whiteSpace": "pre-wrap",
+            "margin": "0", "padding": "14px 16px", "background": f"{color}14",
             "borderRadius": "8px", "borderLeft": f"4px solid {color}",
             "fontFamily": "JetBrains Mono, monospace"
         }
