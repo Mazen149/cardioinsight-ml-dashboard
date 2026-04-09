@@ -672,12 +672,11 @@ def upd_eda(feature, ctype, theme):
     fig4.update_layout(**PLOT, legend=dict(bgcolor="rgba(0,0,0,0)"))
 
     dff["Sex"] = dff["sex"].map({0.0: "Female", 1.0: "Male"})
-    sex_colors = px.colors.sample_colorscale([c0, c1], [0.2, 0.8])
     fig5 = px.histogram(
         dff,
         x="age",
         color="Sex",
-        color_discrete_map={"Male": sex_colors[0], "Female": sex_colors[1]},
+        color_discrete_map={"Male": c0, "Female": c1},
         barmode="overlay",
         nbins=20,
         opacity=0.75,
