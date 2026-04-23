@@ -188,9 +188,9 @@ The **`notebooks/heart_disease_eda.ipynb`** Jupyter notebook contains:
 
 This notebook informs the interactive dashboard design.
 
-## ⚖️ License
+## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ## 📋 Disclaimer
 
